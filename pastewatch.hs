@@ -26,7 +26,6 @@ forkN k action =
     replicateM_ k . forkIO $ action 
 
 -- email file to the admins
--- XXX Fixme needs to be from config file
 emailFile::URL -> String -> IO()
 emailFile url content = do
     print ("Alerting on URL " ++ url)
