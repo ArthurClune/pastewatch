@@ -16,11 +16,16 @@ import PasteWatch.Types
 doCheck::Site -> URL -> (S.ByteString->Bool) -> IO (Maybe String)
 
 doCheck Pastebin url contentMatch =
-    doCheck' url contentMatch (css "textarea" >>> deep isText)
+    doCheck' url contentMatch (css "textarea")
 
 doCheck Pastie url contentMatch = 
-    doCheck' url contentMatch (css "pre[class=textmate-source]" 
-                               >>> deep isText)
+    doCheck' url contentMatch (css "pre[class=textmate-source]")
+
+doCheck SkidPaste url contentMatch = 
+    doCheck' url contentMatch (css "div[class=content]")
+
+doCheck Slexy url contentMatch =
+    doCheck' url contentMatch (css "div[class=text]")    
 
 -- Get all the new pastes from a given site
 getNewPastes::Site -> Job [URL]
@@ -34,10 +39,20 @@ getNewPastes Pastie = do
     doc   <- liftIO $ fromUrl "http://www.pastie.org/pastes"
     liftIO $ runX $ doc >>> css "div[class=pastePreview] a" ! "href"
 
+getNewPastes SkidPaste = do
+    doc   <- liftIO $ fromUrl "http://skidpaste.org/index.html"
+    links <- liftIO $ runX $ doc >>> css "div[id=sidemenu] ul[class=submenu] a" ! "href"
+    return [x| x <- links, x /= ""]
+
+getNewPastes Slexy = do
+    doc   <- liftIO $ fromUrl "http://slexy.org/recent"
+    links <-liftIO $ runX $ doc >>> css "td a" ! "href"
+    return $ map ("http://slexy.org" ++) links
+
 -- internal helper function
 doCheck' url contentMatch cssfunc = do
     doc     <- fromUrl url
-    content <- runX . xshow $ doc >>> cssfunc
+    content <- runX . xshow $ doc >>> cssfunc >>> deep isText
     if contentMatch (B.pack $ head content)
         then return $ Just (head content)
         else return Nothing

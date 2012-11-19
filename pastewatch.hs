@@ -87,7 +87,7 @@ pruneURLs = do
 -- putting into the queue for other threads to pick up
 runMain::Job ()
 runMain = do
-    mapM_ getURLs [Pastebin, Pastie]
+    mapM_ getURLs [Pastebin, Pastie, SkidPaste, Slexy]
     liftIO $ threadDelay(10*10^6)
     pruneURLs
     runMain

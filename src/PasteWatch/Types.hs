@@ -33,7 +33,7 @@ data JobState = JobState { linkQueue::TChan Task
 -- | The different sites
 --   An instance of PasteSite is required for every site
 --   Site Pastebin | Pastie or .....
-data Site = Pastebin | Pastie
+data Site = Pastebin | Pastie | SkidPaste | Slexy
 
 -- | A Task is either a URL to check, or Done
 --   The code doesn't use Done yet

@@ -1,3 +1,5 @@
 dist
 .virthualenv
 output
+dist_*
+cabal-dev
