@@ -10,15 +10,16 @@ import Data.Monoid (mconcat)
 import Data.Attoparsec.ByteString.Char8
 import Data.ByteString.Char8 as S hiding (map)
 
-import PasteWatch.Config (alertStrings, alertStringsCI)
+import PasteWatch.Config (config)
+import PasteWatch.Types (Config(..))
 
 -- set of strings to match on
 -- TODO We need to get these from a config file eventually
 strings::Parser S.ByteString
 strings = mconcat matchlist
   where
-    matchlist = (map string alertStrings) ++
-                (map stringCI alertStringsCI)
+    matchlist = (map string $ alertStrings config) ++
+                (map stringCI $ alertStringsCI config)
 
 alerts::Parser String
 alerts = manyTill anyChar (try strings) <* many anyChar

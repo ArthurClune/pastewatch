@@ -4,29 +4,40 @@ module PasteWatch.Utils
       sendEmail
     ) where
 
-
 import Data.IORef
 import Network.SMTP.Client
 import Network.Socket
 import System.Time (getClockTime, toCalendarTime)
 
-import PasteWatch.Types (Email)
+import PasteWatch.Types (Domain, Email, Host)
 
--- send an email with contents content
+-- | break a list apart on seperator sep
+explode::Eq a => a -> [a] -> [[a]]
+explode _ [] = []
+explode sep (x':xs) | sep == x' = explode sep xs
+explode sep xs = takeWhile (/=sep) xs : explode sep (dropWhile (/=sep) xs)
+
+-- |send an email with contents content
 -- 
 -- E.g.
 -- 
 -- sendEmail ("Arthur Clune","me@me.com")
 --           [("Fred Blogs", "fred@exmaple.com")]
+--           "example.org"
+--           "smtp.example.org"
 --           "hi there" This is the body of the email"
 -- 
 sendEmail::Email
            -> [Email]
-           -> String 
+           -> Domain 
+           -> Host
+           -> String
            -> String 
            -> IO()
 sendEmail sender
           recipients
+          myDomain
+          smtpServer
           subject 
           content = do
     now <- getClockTime
@@ -38,23 +49,13 @@ sendEmail sender
                 Date nowCT
             ]
             content
-    addrs <- getAddrInfo Nothing (Just smtpHost) Nothing
+    addrs <- getAddrInfo Nothing (Just smtpServer) Nothing
     let SockAddrInet _ hostAddr = addrAddress (head addrs)
         sockAddr = SockAddrInet 25 hostAddr
     sentRef <- newIORef []
     sendSMTP (Just sentRef) myDomain sockAddr [message]
     return ()
   where
-    smtpHost     = "smtp.york.ac.uk"
-    myDomain     = "york.ac.uk"
     recipients'  = map toName recipients
     sender'      = [toName sender]
     toName (n,e) = NameAddr (Just n) e
-
--- | break a list apart on seperator sep
-explode::Eq a => a -> [a] -> [[a]]
-explode _ [] = []
-explode sep (x':xs) | sep == x' = explode sep xs
-explode sep xs = takeWhile (/=sep) xs : explode sep (dropWhile (/=sep) xs)
-
-

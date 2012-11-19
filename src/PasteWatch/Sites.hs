@@ -5,10 +5,11 @@ module PasteWatch.Sites
     ) where
 
 import Control.Monad.State (liftIO)
-import Data.ByteString as S hiding (head, map)   
-import Data.ByteString.Char8 as B (pack)     
+import Data.ByteString as S hiding (head, filter, map)   
+import Data.ByteString.Char8 as B (pack)   
+import Data.Tree.NTree.TypeDefs  
 import Text.HandsomeSoup ((!), css, fromUrl)
-import Text.XML.HXT.Core ((>>>), deep, runX, isText, xshow)
+import Text.XML.HXT.Core
 
 import PasteWatch.Types
 
@@ -42,7 +43,7 @@ getNewPastes Pastie = do
 getNewPastes SkidPaste = do
     doc   <- liftIO $ fromUrl "http://skidpaste.org/index.html"
     links <- liftIO $ runX $ doc >>> css "div[id=sidemenu] ul[class=submenu] a" ! "href"
-    return [x| x <- links, x /= ""]
+    return $ filter (/= "") links 
 
 getNewPastes Slexy = do
     doc   <- liftIO $ fromUrl "http://slexy.org/recent"
@@ -50,6 +51,10 @@ getNewPastes Slexy = do
     return $ map ("http://slexy.org" ++) links
 
 -- internal helper function
+doCheck'::String
+        -> (S.ByteString->Bool)
+        -> IOSLA (XIOState ()) (NTree XNode) (NTree XNode)
+        -> IO (Maybe String)
 doCheck' url contentMatch cssfunc = do
     doc     <- fromUrl url
     content <- runX . xshow $ doc >>> cssfunc >>> deep isText

@@ -15,7 +15,7 @@ import Data.Time.Clock as Time
 import System.Exit (exitWith, ExitCode(..))
 
 import PasteWatch.Alert (checkContent)
-import PasteWatch.Config (recipients, sender)
+import PasteWatch.Config (config)
 import PasteWatch.Sites
 import PasteWatch.Types 
 import PasteWatch.Utils (sendEmail)
@@ -28,14 +28,18 @@ forkN k action =
 -- email file to the admins
 emailFile::URL -> String -> IO()
 emailFile url content = do
-    print ("Alerting on URL " ++ url)
-    sendEmail sender recipients "Pastebin alert" 
-                (url ++ "\n\n" ++ content)
+    --print ("Alerting on URL " ++ url)
+    sendEmail (sender config) 
+               (recipients config)
+               (domain config) 
+               (smtpServer config)
+               "Pastebin alert" 
+               (url ++ "\n\n" ++ content)
 
 -- grab the given URL and perform our check
 runCheck::Site -> URL -> (S.ByteString->Bool) -> IO ()
 runCheck site url checkf = do
-    print $ "Checking " ++ url
+    --print $ "Checking " ++ url
     result <- doCheck site url checkf
     case result of
         Just content -> emailFile url content
@@ -87,19 +91,19 @@ pruneURLs = do
 -- putting into the queue for other threads to pick up
 runMain::Job ()
 runMain = do
-    mapM_ getURLs [Pastebin, Pastie, SkidPaste, Slexy]
-    liftIO $ threadDelay(10*10^6)
-    pruneURLs
-    runMain
+        mapM_ getURLs sites
+        liftIO $ threadDelay (delayTime config)
+        pruneURLs
+        runMain
   where
     getURLs site = do
         urls <- getNewPastes site
-        filterM seenURL urls >>= sendJobs site
+        filterM (seenURL) urls >>= sendJobs site
 
 -- main()
 main :: IO ()
 main = do
     jobs <- newTChanIO
-    forkN 8 (checkPaste jobs)
-    _ <- execJob runMain (JobState jobs Map.empty)
+    forkN (nthreads config) (checkPaste jobs)
+    _  <- (execStateT . runJob) runMain (JobState jobs Map.empty)
     return ()
