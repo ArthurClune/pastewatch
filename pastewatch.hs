@@ -65,13 +65,14 @@ insertURL l = do
     modify $ \s ->
       s { linksSeen = Map.insert l time (linksSeen s) }
 
--- | If we have seen a link, return False.  Otherwise, record that we
--- have seen it, and return True.
-seenURL::URL -> Job Bool
-seenURL url =  do
-    seen <- Map.notMember url `liftM` gets linksSeen
-    insertURL url
-    return seen
+-- | If we have not seen a link before, return True and record that we have
+-- now seen it.  Otherwise, return False.
+notSeenURL::URL -> Job Bool
+notSeenURL url =  do
+    seen <- Map.member url `liftM` gets linksSeen
+    if seen 
+        then return False
+        else (insertURL url >> return True)
 
 -- put urls into the shared queue
 sendJobs::Site -> [URL] -> Job ()
@@ -98,7 +99,7 @@ runMain = do
   where
     getURLs site = do
         urls <- getNewPastes site
-        filterM (seenURL) urls >>= sendJobs site
+        filterM (notSeenURL) urls >>= sendJobs site
 
 -- main()
 main :: IO ()
