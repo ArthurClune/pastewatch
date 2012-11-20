@@ -14,7 +14,6 @@ import PasteWatch.Config (config)
 import PasteWatch.Types (Config(..))
 
 -- set of strings to match on
--- TODO We need to get these from a config file eventually
 strings::Parser S.ByteString
 strings = mconcat matchlist
   where

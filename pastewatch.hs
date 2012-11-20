@@ -86,7 +86,7 @@ pruneURLs::Job ()
 pruneURLs = do
     now <- liftIO Time.getCurrentTime
     modify $ \s -> s { linksSeen = 
-        Map.filter (\x -> diffUTCTime now x < 600) (linksSeen s) }
+        Map.filter (\x -> diffUTCTime now x < 3600 * 24) (linksSeen s) }
 
 -- our main thread. Loop forever, pulling the new pastes and 
 -- putting into the queue for other threads to pick up
@@ -99,7 +99,7 @@ runMain = do
   where
     getURLs site = do
         urls <- getNewPastes site
-        filterM (notSeenURL) urls >>= sendJobs site
+        filterM notSeenURL urls >>= sendJobs site
 
 -- main()
 main :: IO ()
