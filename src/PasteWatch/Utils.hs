@@ -19,13 +19,12 @@ explode sep xs = takeWhile (/=sep) xs : explode sep (dropWhile (/=sep) xs)
 
 -- |send an email with contents content
 -- 
--- E.g.
--- 
 -- sendEmail ("Arthur Clune","me@me.com")
 --           [("Fred Blogs", "fred@exmaple.com")]
 --           "example.org"
 --           "smtp.example.org"
---           "hi there" This is the body of the email"
+--           "hi there" 
+--           "This is the body of the email"
 -- 
 sendEmail::Email
            -> [Email]

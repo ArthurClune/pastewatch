@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+import Data.Monoid (mconcat)
 import Data.Maybe
 import PasteWatch.Alert (checkContent)
 import Test.HUnit
@@ -9,14 +10,10 @@ import System.IO.Unsafe (unsafePerformIO)
 import PasteWatch.Sites
 import PasteWatch.Types
 
-import Debug.Trace (traceShow)
-
 -- skid paste output includes a "Parsed in 0.000 seconds" type output
 -- so just do a simple match
 doesSkidpasteMatch c = case c of
-    Just s -> if "@example.com" `elem` (words $ lines s !! 2)
-                then traceShow (lines s) True 
-                else traceShow (lines s) False
+    Just s -> "@example.com" `elem` (mconcat $ map words $ lines s)
     Nothing -> False
 
 -- tests will fail if no internet connectivity is available
