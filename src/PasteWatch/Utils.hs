@@ -1,3 +1,4 @@
+-- | Some misc utility functions
 module PasteWatch.Utils
     (
       explode,
@@ -17,15 +18,9 @@ explode _ [] = []
 explode sep (x':xs) | sep == x' = explode sep xs
 explode sep xs = takeWhile (/=sep) xs : explode sep (dropWhile (/=sep) xs)
 
--- |send an email with contents content
--- 
--- sendEmail ("Arthur Clune","me@me.com")
---           [("Fred Blogs", "fred@exmaple.com")]
---           "example.org"
---           "smtp.example.org"
---           "hi there" 
---           "This is the body of the email"
--- 
+-- | Send an email with given subject and contents
+-- using the given (unauthenicated) smtp server
+-- myDomain is the domain of the sender
 sendEmail::Email
            -> [Email]
            -> Domain 

@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-
+-- | Code to generate our parser based on the given config
 module PasteWatch.Alert
    (
      checkContent
@@ -13,7 +13,8 @@ import Data.ByteString.Char8 as S hiding (map)
 import PasteWatch.Config (config)
 import PasteWatch.Types (Config(..))
 
--- set of strings to match on
+-- | Parser for a set of strings to match on,
+-- generated from the Config.hs
 strings::Parser S.ByteString
 strings = mconcat matchlist
   where
@@ -23,7 +24,7 @@ strings = mconcat matchlist
 alerts::Parser String
 alerts = manyTill anyChar (try strings) <* many anyChar
 
--- return True if the string includes out patterns
+-- | Return True iff the given string includes our patterns
 checkContent::S.ByteString -> Bool
 checkContent s = case r of
                 Left  _ -> False

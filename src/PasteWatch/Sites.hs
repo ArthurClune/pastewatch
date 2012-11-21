@@ -1,3 +1,6 @@
+-- | Code to deal with each specific type of site
+--
+-- Contains all the special case code that differs per site
 module PasteWatch.Sites
     (
         doCheck,
@@ -13,7 +16,7 @@ import Text.XML.HXT.Core
 
 import PasteWatch.Types
 
--- Check contents of a URL against given check function
+-- | Check contents of a URL against given check function
 doCheck::Site -> URL -> (S.ByteString->Bool) -> IO (Maybe String)
 
 doCheck Pastebin url contentMatch =
@@ -28,7 +31,7 @@ doCheck SkidPaste url contentMatch =
 doCheck Slexy url contentMatch =
     doCheck' url contentMatch (css "div[class=text]")    
 
--- Get all the new pastes from a given site
+-- | Get all the new pastes from a given site
 getNewPastes::Site -> Job [URL]
 
 getNewPastes Pastebin = do
