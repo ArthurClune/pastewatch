@@ -8,14 +8,16 @@
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.STM
 import Control.Exception (onException)
+import Control.Monad.Reader
 import Control.Monad.State
-import Data.ByteString as S hiding (map)
-import Data.Map as Map
-import Data.Time.Clock as Time
+import qualified Data.ByteString as S
+import qualified Data.Map as Map
+import qualified Data.Time.Clock as Time
+import GHC.Conc.Sync (ThreadId)
 import System.Exit (exitWith, ExitCode(..))
 
 import PasteWatch.Alert (checkContent)
-import PasteWatch.Config (config)
+import PasteWatch.Config (config, siteConfigs)
 import PasteWatch.Sites
 import PasteWatch.Types 
 import PasteWatch.Utils (sendEmail)
@@ -28,7 +30,7 @@ forkN k action =
 -- email file to the admins
 emailFile::URL -> String -> IO()
 emailFile url content = do
-    --print ("Alerting on URL " ++ url)
+    print ("Alerting on URL " ++ url)
     sendEmail (sender config) 
                (recipients config)
                (domain config) 
@@ -39,7 +41,7 @@ emailFile url content = do
 -- grab the given URL and perform our check
 runCheck::Site -> URL -> (S.ByteString->Bool) -> IO ()
 runCheck site url checkf = do
-    --print $ "Checking " ++ url
+    print $ "Checking " ++ url
     result <- doCheck site url checkf
     case result of
         Just content -> emailFile url content
@@ -50,7 +52,6 @@ checkone::TChan Task -> (S.ByteString->Bool) -> IO ()
 checkone jobs checkf = do
     job <- atomically $ readTChan jobs
     case job of
-        Done           -> return ()
         Check site url -> onException (runCheck site url checkf) (exitWith (ExitFailure 1))
 
 -- grab a url from the job queue, download and check
@@ -72,7 +73,7 @@ notSeenURL url =  do
     seen <- Map.member url `liftM` gets linksSeen
     if seen 
         then return False
-        else (insertURL url >> return True)
+        else insertURL url >> return True
 
 -- put urls into the shared queue
 sendJobs::Site -> [URL] -> Job ()
@@ -80,31 +81,43 @@ sendJobs site links = do
     chan <- gets linkQueue
     liftIO . atomically $ mapM_ (writeTChan chan . Check site) links
 
--- prune all URLs first added more than ten minutes (600s) ago
--- XXX fix me magic number here
+-- prune all URLs first added more than pruneTime ago
 pruneURLs::Job ()
 pruneURLs = do
     now <- liftIO Time.getCurrentTime
-    modify $ \s -> s { linksSeen = 
-        Map.filter (\x -> diffUTCTime now x < 3600 * 24) (linksSeen s) }
+    sc <- ask
+    let pTime = pruneTime sc
+    let filterf x = Time.diffUTCTime now x < pTime in
+        modify $ \s -> s { linksSeen = 
+            Map.filter filterf (linksSeen s) }
 
--- our main thread. Loop forever, pulling the new pastes and 
+-- Loop forever, pulling the new pastes for a give site and 
 -- putting into the queue for other threads to pick up
-runMain::Job ()
-runMain = do
-        mapM_ getURLs sites
-        liftIO $ threadDelay (delayTime config)
-        pruneURLs
-        runMain
+runControl::Job ()
+runControl = do
+    sc <- ask
+    let site = siteType sc
+    let dtime = delayTime sc
+    getURLs site
+    liftIO $ threadDelay dtime
+    pruneURLs
+    runControl
   where
     getURLs site = do
         urls <- getNewPastes site
         filterM notSeenURL urls >>= sendJobs site
+
+-- Spawn one control thread per site
+spawnControlThreads::MonadIO m => TChan Task -> SiteConfig -> m ThreadId
+spawnControlThreads jobs sc = 
+    liftIO $ forkIO
+        (void $ execJob runControl (JobState jobs Map.empty) sc)
 
 -- main()
 main :: IO ()
 main = do
     jobs <- newTChanIO
     forkN (nthreads config) (checkPaste jobs)
-    _  <- (execStateT . runJob) runMain (JobState jobs Map.empty)
+    mapM_ (spawnControlThreads jobs) siteConfigs
+    threadDelay (360000 * 1000000)
     return ()

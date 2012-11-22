@@ -13,12 +13,11 @@ import PasteWatch.Types
 -- skid paste output includes a "Parsed in 0.000 seconds" type output
 -- so just do a simple match
 doesSkidpasteMatch c = case c of
-    Just s -> "@example.com" `elem` (mconcat $ map words $ lines s)
+    Just s -> "@example.com" `elem` mconcat (map words $ lines s)
     Nothing -> False
 
 -- tests will fail if no internet connectivity is available
-urlGet site url = do
-    unsafePerformIO $ doCheck site url checkContent
+urlGet site url = unsafePerformIO $ doCheck site url checkContent
 
 testList = [TestCase $ assertEqual "Test single line T1" True  (checkContent "stuff in a@example.com dsfd"),
             TestCase $ assertEqual "Test single line F1" False (checkContent "some content in here"),

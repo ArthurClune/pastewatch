@@ -2,7 +2,8 @@
 -- | All user config goes here
 module PasteWatch.Config
     ( 
-      config
+      config,
+      siteConfigs
     ) where
 
 import PasteWatch.Types
@@ -20,7 +21,30 @@ config = Config {
     nthreads       = 32,
     sender         = ("Me", "do-not-reply@example.com"),
     smtpServer     = "smtp.example.com",
-    recipients     = [("Mr. Me", "me@example.com")],
-    delayTime      = 10*1000000
+    recipients     = [("Mr. Me", "me@example.com")]
 }
+
+siteConfigs::[SiteConfig]
+siteConfigs = [
+  SiteConfig {
+    siteType  = Pastebin,
+    delayTime = 10,
+    pruneTime = 3600
+  },
+  SiteConfig {
+    siteType  = Pastie,
+    delayTime = 33,      -- 30 sec + skew
+    pruneTime = 3600 
+  },
+  SiteConfig {
+    siteType  = SkidPaste,
+    delayTime = 247,     -- 4 mins + skew
+    pruneTime = 7200
+  },
+  SiteConfig {
+    siteType  = Slexy,
+    delayTime = 251,     -- 4 mins + skew
+    pruneTime = 86400 
+  }
+ ]  
 

@@ -8,7 +8,7 @@ module PasteWatch.Alert
 import Control.Applicative
 import Data.Monoid (mconcat)
 import Data.Attoparsec.ByteString.Char8
-import Data.ByteString.Char8 as S hiding (map)
+import qualified Data.ByteString.Char8 as S
 
 import PasteWatch.Config (config)
 import PasteWatch.Types (Config(..))
@@ -18,8 +18,8 @@ import PasteWatch.Types (Config(..))
 strings::Parser S.ByteString
 strings = mconcat matchlist
   where
-    matchlist = (map string $ alertStrings config) ++
-                (map stringCI $ alertStringsCI config)
+    matchlist = map string (alertStrings config) ++
+                map stringCI (alertStringsCI config)
 
 alerts::Parser String
 alerts = manyTill anyChar (try strings) <* many anyChar

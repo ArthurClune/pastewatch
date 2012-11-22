@@ -8,8 +8,8 @@ module PasteWatch.Sites
     ) where
 
 import Control.Monad.State (liftIO)
-import Data.ByteString as S hiding (head, filter, map)   
-import Data.ByteString.Char8 as B (pack)   
+import qualified Data.ByteString as S
+import qualified Data.ByteString.Char8 as B (pack)   
 import Data.Tree.NTree.TypeDefs  
 import Text.HandsomeSoup ((!), css, fromUrl)
 import Text.XML.HXT.Core

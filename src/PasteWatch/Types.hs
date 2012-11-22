@@ -10,11 +10,13 @@ module PasteWatch.Types
         JobState(..),
         Task(..),
         Site(..),
-        sites,
+        SiteConfig(..),
         URL,
+        execJob
     ) where
 
-import Control.Concurrent.STM
+import Control.Concurrent.STM (TChan)
+import Control.Monad.Reader
 import Control.Monad.State
 import Data.ByteString.Char8 as S
 import Data.Map as Map
@@ -37,9 +39,7 @@ data Config = Config {
   -- | Send alert emails to?
   recipients     :: [Email],
   -- | SMTP server to use to send email via
-  smtpServer     :: Host,
-  -- | Time to pause main thread each loop (microseconds)
-  delayTime      :: Int
+  smtpServer     :: Host
 }
 
 -- | A domain domain (e.g. "example.com")
@@ -52,25 +52,42 @@ type Email = (String, String)
 type Host = String
 
 -- | Monad stack wrapping State
-newtype Job a = Job { runJob::StateT JobState IO a }
-    deriving (Monad, MonadState JobState, MonadIO)
+newtype Job a  = Job { 
+      runJob:: StateT JobState (ReaderT SiteConfig IO) a
+    } deriving (Monad, MonadReader SiteConfig, MonadState JobState, MonadIO)
 
--- | State monad for our channel and list of done URLs
-data JobState = JobState { linkQueue::TChan Task
-                           ,linksSeen::Map.Map URL Time.UTCTime
-                         }
+execJob::Job a -> JobState -> SiteConfig -> IO JobState
+execJob s = runReaderT . (execStateT . runJob) s
 
+-- | State for our channel: list of done URLs and
+-- config for the site we are doing
+data JobState = JobState { 
+    -- STM queue for passing URLs around
+    linkQueue::TChan Task,
+    -- per thread map of URLs seen for this site
+    linksSeen::Map.Map URL Time.UTCTime
+} 
+ 
 -- | The different sites
 --
 --   An instance of PasteSite is required for every site
-data Site = Pastebin | Pastie | SkidPaste | Slexy
+data Site = Pastebin | Pastie | SkidPaste | Slexy deriving (Show, Eq)
 
 -- | List of the different site types
-sites::[Site]
-sites = [Pastebin, Pastie, SkidPaste, Slexy]
+-- plus config for each site type
+data SiteConfig = SiteConfig {
+    -- Type of site
+    siteType  :: Site,
+    -- | Time to pause main thread each loop (seconds)
+    -- Adjust depending on the volume of pastes on the target site
+    delayTime :: Int,
+    -- time (in seconds) after which we remove URLs 
+    -- from the seen list for this site
+    pruneTime::Time.NominalDiffTime
+} deriving (Show, Eq)
 
 -- | A Task is a URL to check
-data Task = Check Site URL | Done
+data Task = Check Site URL
 
 -- | Simple type to store URLs
 type URL = String        
