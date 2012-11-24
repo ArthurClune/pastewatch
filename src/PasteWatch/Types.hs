@@ -6,7 +6,7 @@ module PasteWatch.Types
         Domain,
         Email,
         Host,
-        Job(..),
+        Job,
         JobState(..),
         Task(..),
         Site(..),
