@@ -36,6 +36,4 @@ Bugs
 
 2) The URL fetch code needs to implement backoff and retry on failure
 
-3) The delay for timing out URLs shoud be per-site 
-
 
