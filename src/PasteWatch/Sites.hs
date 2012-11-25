@@ -7,7 +7,6 @@ module PasteWatch.Sites
         getNewPastes,
     ) where
 
-import Control.Monad.State (liftIO)
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Char8 as B (pack)   
 import Data.Tree.NTree.TypeDefs  
@@ -32,25 +31,25 @@ doCheck Slexy url contentMatch =
     doCheck' url contentMatch (css "div[class=text]")    
 
 -- | Get all the new pastes from a given site
-getNewPastes::Site -> Job [URL]
+getNewPastes::Site -> IO [URL]
 
 getNewPastes Pastebin = do
-    doc   <- liftIO $ fromUrl "http://www.pastebin.com/trends"
-    links <- liftIO $ runX $ doc >>> css "ul[class=right_menu] a" ! "href"
+    doc   <- fromUrl "http://www.pastebin.com/trends"
+    links <- runX $ doc >>> css "ul[class=right_menu] a" ! "href"
     return $ map ("http://pastebin.com" ++ ) links
 
 getNewPastes Pastie = do
-    doc   <- liftIO $ fromUrl "http://www.pastie.org/pastes"
-    liftIO $ runX $ doc >>> css "div[class=pastePreview] a" ! "href"
+    doc   <- fromUrl "http://www.pastie.org/pastes"
+    runX $ doc >>> css "div[class=pastePreview] a" ! "href"
 
 getNewPastes SkidPaste = do
-    doc   <- liftIO $ fromUrl "http://skidpaste.org/index.html"
-    links <- liftIO $ runX $ doc >>> css "div[id=sidemenu] ul[class=submenu] a" ! "href"
+    doc   <- fromUrl "http://skidpaste.org/index.html"
+    links <- runX $ doc >>> css "div[id=sidemenu] ul[class=submenu] a" ! "href"
     return $ filter (/= "") links 
 
 getNewPastes Slexy = do
-    doc   <- liftIO $ fromUrl "http://slexy.org/recent"
-    links <-liftIO $ runX $ doc >>> css "td a" ! "href"
+    doc   <- fromUrl "http://slexy.org/recent"
+    links <- runX $ doc >>> css "td a" ! "href"
     return $ map ("http://slexy.org" ++) links
 
 -- internal helper function

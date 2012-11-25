@@ -22,7 +22,7 @@ Library
     default-language: Haskell98
     Build-depends:    attoparsec, base, bytestring, containers,
                       HandsomeSoup, hxt, mtl, network, old-time, SMTPClient, 
-                      stm, text, time
+                      stm, text, time, transformers
     ghc-options:      -Wall -threaded 
 
 Test-suite pastewatch-tests

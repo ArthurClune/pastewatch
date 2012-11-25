@@ -8,11 +8,12 @@ module PasteWatch.Types
         Host,
         Job,
         JobState(..),
-        Task(..),
+        Task(..) ,
         Site(..),
         SiteConfig(..),
         URL,
-        execJob
+        execJob,
+        runJob
     ) where
 
 import Control.Concurrent.STM (TChan)
@@ -69,12 +70,12 @@ data JobState = JobState {
 } 
  
 -- | The different sites
---
---   An instance of PasteSite is required for every site
+-- 
+-- doCheck and getnewPastes in PasteWatch.Sites must
+-- be implemented for every new site
 data Site = Pastebin | Pastie | SkidPaste | Slexy deriving (Show, Eq)
 
--- | List of the different site types
--- plus config for each site type
+-- | Per-site config
 data SiteConfig = SiteConfig {
     -- Type of site
     siteType  :: Site,

@@ -1,22 +1,31 @@
 -- | Some misc utility functions
 module PasteWatch.Utils
     (
-      explode,
+      forkN,
+      insertURL,
+      notSeenURL,
+      pruneURLs,
       sendEmail
     ) where
 
+import Control.Concurrent (forkIO)
+import Control.Monad.Reader
+import Control.Monad.State
 import Data.IORef
+import qualified Data.Map as Map
 import Network.SMTP.Client
 import Network.Socket
 import System.Time (getClockTime, toCalendarTime)
+import qualified Data.Time.Clock as Time
 
-import PasteWatch.Types (Domain, Email, Host)
+--import PasteWatch.Types (Domain, Email, Host, Job, SiteConfig, URL)
+import PasteWatch.Types hiding (recipients, sender, smtpServer)
 
--- | break a list apart on seperator sep
-explode::Eq a => a -> [a] -> [[a]]
-explode _ [] = []
-explode sep (x':xs) | sep == x' = explode sep xs
-explode sep xs = takeWhile (/=sep) xs : explode sep (dropWhile (/=sep) xs)
+-- forkN
+-- fork N copies for the given action
+forkN::Int -> IO () -> IO ()
+forkN n action = 
+    replicateM_ n . forkIO $ action 
 
 -- | Send an email with given subject and contents
 -- using the given (unauthenicated) smtp server
@@ -53,3 +62,36 @@ sendEmail sender
     recipients'  = map toName recipients
     sender'      = [toName sender]
     toName (n,e) = NameAddr (Just n) e
+
+---------------------------------------------------
+-- Functions to maintain our map of urls and time 
+-- seen
+---------------------------------------------------
+
+-- | Add a link to the map of links we have seen
+-- Key is the url, value is timestamp
+insertURL :: URL -> Job ()
+insertURL l = do
+    time <- liftIO Time.getCurrentTime
+    modify $ \s ->
+      s { linksSeen = Map.insert l time (linksSeen s) }
+
+-- prune all URLs first added more than pruneTime ago
+pruneURLs::Job ()
+pruneURLs = do
+    now <- liftIO Time.getCurrentTime
+    sc <- ask
+    let filterf x = Time.diffUTCTime now x < pTime 
+        pTime = pruneTime sc 
+      in
+        modify $ \s -> s { linksSeen = 
+            Map.filter filterf (linksSeen s) }
+
+-- | If we have not seen a link before, return True and record that we have
+-- now seen it.  Otherwise, return False.
+notSeenURL::URL -> Job Bool
+notSeenURL url =  do
+    seen <- Map.member url `liftM` gets linksSeen
+    if seen 
+        then return False
+        else insertURL url >> return True

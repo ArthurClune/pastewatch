@@ -1,43 +1,60 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-import Data.Monoid (mconcat)
+import Control.Monad
+import Data.Monoid      (mconcat)
 import Data.Maybe
 import PasteWatch.Alert (checkContent)
 import Test.HUnit
-import System.Exit
+import System.Exit      (exitFailure, exitSuccess)
 import System.IO.Unsafe (unsafePerformIO)
 
+import PasteWatch.Config
 import PasteWatch.Sites
 import PasteWatch.Types
 
 -- skid paste output includes a "Parsed in 0.000 seconds" type output
 -- so just do a simple match
-doesSkidpasteMatch c = case c of
+skidpasteMatch c = case c of
     Just s -> "@example.com" `elem` mconcat (map words $ lines s)
     Nothing -> False
 
+-- using unsafePerformIO here means that the
 -- tests will fail if no internet connectivity is available
-urlGet site url = unsafePerformIO $ doCheck site url checkContent
+unsafeDoCheck site url = unsafePerformIO $ doCheck site url checkContent
 
-testList = [TestCase $ assertEqual "Test single line T1" True  (checkContent "stuff in a@example.com dsfd"),
-            TestCase $ assertEqual "Test single line F1" False (checkContent "some content in here"),
-            TestCase $ assertEqual "Test single line T2" True  (checkContent "yeah root@example.com/password stuff"),
-            TestCase $ assertEqual "Test multi line T1"  True  (checkContent "one line\ntwo line\ntree @sub.example.com line"),
-            TestCase $ assertEqual "Test multi line F1"  False (checkContent "one line  \n two line"),
-            TestCase $ assertEqual "get pastebin" (Just "testing @example.com testing")
-                        (urlGet Pastebin "http://pastebin.com/bLFduQqs"),
-            TestCase $ assertEqual "get pastie" (Just "testing @example.com testing\n")
-                        (urlGet Pastie "http://pastie.org/5406980"),
-            TestCase $ assertEqual "get skidpaste" True
-                        (doesSkidpasteMatch $ urlGet SkidPaste "http://skidpaste.org/3cOMCRpA"),
-            TestCase $ assertEqual "get slexy" (Just "testing @example.com testing\n")
-                        (urlGet Slexy "http://slexy.org/view/s2Fv9q8J2H")
+testList = [TestCase $ assertBool "Test single line T1" 
+                        (checkContent "stuff in a@example.com dsfd"),
+            TestCase $ assertBool "Test single line F1" 
+                        (not $ checkContent "some content in here"),
+            TestCase $ assertBool "Test single line T2" 
+                        (checkContent "yeah root@example.com/password stuff"),
+            TestCase $ assertBool "Test multi line T1"  
+                        (checkContent "one line\ntwo line\ntree @sub.example.com line"),
+            TestCase $ assertBool "Test multi line F1"          
+                        (not $ checkContent "one line  \n two line"),
+            TestCase $ assertEqual "get pastebin" 
+                        (Just "testing @example.com testing")
+                        (unsafeDoCheck Pastebin "http://pastebin.com/bLFduQqs"),
+            TestCase $ assertEqual "get pastie" 
+                        (Just "testing @example.com testing\n")
+                        (unsafeDoCheck Pastie "http://pastie.org/5406980"),
+            TestCase $ assertBool "get skidpaste" 
+                        (skidpasteMatch $ unsafeDoCheck SkidPaste "http://skidpaste.org/3cOMCRpA"),
+            TestCase $ assertEqual "get slexy" 
+                        (Just "testing @example.com testing\n")
+                        (unsafeDoCheck Slexy "http://slexy.org/view/s2Fv9q8J2H")           
            ]
 
+-- test the new paste functions don't return an empty list
+testNewPastes =   map
+                    (\s -> TestCase $ assertBool "" 
+                                (null $ unsafePerformIO $ getNewPastes $ siteType s))
+                    siteConfigs
 
 main::IO ()
 main = 
-    do c <- runTestTT $ TestList testList
-       if errors c /= 0 || failures c /= 0
+    do c1 <- runTestTT $ TestList testList
+       c2 <- runTestTT $ TestList testNewPastes
+       if any (\x -> errors x /= 0 && failures x /= 0) [c1, c2]
             then exitFailure
             else exitSuccess

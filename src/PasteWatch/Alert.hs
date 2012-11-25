@@ -11,7 +11,7 @@ import Data.Attoparsec.ByteString.Char8
 import qualified Data.ByteString.Char8 as S
 
 import PasteWatch.Config (config)
-import PasteWatch.Types (Config(..))
+import PasteWatch.Types  (Config(..))
 
 -- | Parser for a set of strings to match on,
 -- generated from the Config.hs
