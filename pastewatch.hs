@@ -8,7 +8,6 @@
 
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.STM
-import Control.Monad (unless)
 import Control.Monad.Reader
 import Control.Monad.State
 import qualified Data.ByteString as S
@@ -45,7 +44,7 @@ checkone jobs checkf = do
     print $ "Checking " ++ url
     result <- doCheck (site job) url checkf
     case result of
-        Left errortype -> case errortype of
+        Left err -> case err of
             RETRY    -> reschedule jobs job
             FAILED   -> return ()
             NO_MATCH -> return () 

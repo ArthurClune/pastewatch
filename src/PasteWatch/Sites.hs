@@ -55,7 +55,7 @@ getNewPastes Slexy = do
     return $ map ("http://slexy.org" ++) links
 
 -- internal helper function
-doCheck'::String
+doCheck'::URL
         -> (S.ByteString->Bool)
         -> IOSLA (XIOState ()) (NTree XNode) (NTree XNode)
         -> IO (Either ErrorCode String)
