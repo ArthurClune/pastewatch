@@ -8,6 +8,7 @@
 
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.STM
+import Control.Monad (unless)
 import Control.Monad.Reader
 import Control.Monad.State
 import qualified Data.ByteString as S
@@ -55,15 +56,13 @@ checkone jobs checkf = do
 reschedule::TChan Task -> Task -> IO ()
 reschedule jobs job = do
     print $ "Rescheduling " ++ show job
-    if ntimes' > 5 
-        then return ()
-        else do
-            threadDelay $ 627000000 * ntimes'   -- 5 mins + a bit
-            atomically $ writeTChan jobs Task { 
-                            site = site job, 
-                            ntimes = ntimes',
-                            paste = paste job
-                          }
+    unless (ntimes' > 5) $ do
+        threadDelay $ 627000000 * ntimes'   -- 5 mins + a bit
+        atomically $ writeTChan jobs Task { 
+                        site = site job, 
+                        ntimes = ntimes',
+                        paste = paste job
+                      }
   where
     ntimes' = ntimes job + 1  
 
