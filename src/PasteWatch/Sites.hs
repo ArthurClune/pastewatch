@@ -7,16 +7,18 @@ module PasteWatch.Sites
         getNewPastes,
     ) where
 
+import Control.Exception (onException)
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Char8 as B (pack)   
 import Data.Tree.NTree.TypeDefs  
-import Text.HandsomeSoup ((!), css, fromUrl)
-import Text.XML.HXT.Core
+import Network.HTTP
+import Text.HandsomeSoup ((!), css, parseHtml, fromUrl)
+import Text.XML.HXT.Core hiding (trace)
 
 import PasteWatch.Types
 
 -- | Check contents of a URL against given check function
-doCheck::Site -> URL -> (S.ByteString->Bool) -> IO (Maybe String)
+doCheck::Site -> URL -> (S.ByteString->Bool) -> IO (Either ErrorCode String)
 
 doCheck Pastebin url contentMatch =
     doCheck' url contentMatch (css "textarea")
@@ -56,10 +58,27 @@ getNewPastes Slexy = do
 doCheck'::String
         -> (S.ByteString->Bool)
         -> IOSLA (XIOState ()) (NTree XNode) (NTree XNode)
-        -> IO (Maybe String)
+        -> IO (Either ErrorCode String)
 doCheck' url contentMatch cssfunc = do
-    doc     <- fromUrl url
-    content <- runX . xshow $ doc >>> cssfunc >>> deep isText
-    if contentMatch (B.pack $ head content)
-        then return $ Just (head content)
-        else return Nothing
+    resp <- onException (fetchURL url) (return FAILED)
+    case resp of
+        Left a -> return $ Left a
+        Right doc -> extractContent doc
+  where
+    extractContent doc = do
+        content <- runX . xshow $ doc >>> cssfunc >>> deep isText
+        if contentMatch (B.pack $ head content)
+            then return $ Right (head content)
+            else return $ Left NO_MATCH
+
+fetchURL::URL -> IO (Either ErrorCode (IOSArrow XmlTree (NTree XNode)))
+fetchURL url = do
+    let req = getRequest url
+    resp <- simpleHTTP req
+    case resp of
+        Left _  -> return $ Left FAILED
+        Right r -> case rspCode r of            
+            (2, 0, 0) -> return $ Right $ parseHtml (rspBody r)
+            (4, 0, 8) -> return $ Left RETRY
+            (5, _, _) -> return $ Left RETRY
+            _         -> return $ Left FAILED

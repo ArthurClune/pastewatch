@@ -15,8 +15,8 @@ import PasteWatch.Types
 -- skid paste output includes a "Parsed in 0.000 seconds" type output
 -- so just do a simple match
 skidpasteMatch c = case c of
-    Just s -> "@example.com" `elem` mconcat (map words $ lines s)
-    Nothing -> False
+    Left  _ -> False
+    Right s -> "@example.com" `elem` mconcat (map words $ lines s)
 
 -- using unsafePerformIO here means that the
 -- tests will fail if no internet connectivity is available
@@ -33,15 +33,15 @@ testList = [TestCase $ assertBool "Test single line T1"
             TestCase $ assertBool "Test multi line F1"          
                         (not $ checkContent "one line  \n two line"),
             TestCase $ assertEqual "get pastebin" 
-                        (Just "testing @example.com testing")
+                        (Right "testing @example.com testing")
                         (unsafeDoCheck Pastebin "http://pastebin.com/bLFduQqs"),
             TestCase $ assertEqual "get pastie" 
-                        (Just "testing @example.com testing\n")
+                        (Right "testing @example.com testing\n")
                         (unsafeDoCheck Pastie "http://pastie.org/5406980"),
             TestCase $ assertBool "get skidpaste" 
                         (skidpasteMatch $ unsafeDoCheck SkidPaste "http://skidpaste.org/3cOMCRpA"),
             TestCase $ assertEqual "get slexy" 
-                        (Just "testing @example.com testing\n")
+                        (Right "testing @example.com testing\n")
                         (unsafeDoCheck Slexy "http://slexy.org/view/s2Fv9q8J2H")           
            ]
 

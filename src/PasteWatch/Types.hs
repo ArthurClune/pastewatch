@@ -5,6 +5,7 @@ module PasteWatch.Types
         Config(..),
         Domain,
         Email,
+        ErrorCode(..),
         Host,
         Job,
         JobState(..),
@@ -49,6 +50,12 @@ type Domain = String
 -- | Email address ("Real Name", "email address")
 type Email = (String, String)
 
+-- | Custom errors when getting paste
+-- NO_MATCH Doesn't match our check
+-- FAILED Failed permentently e.g. 404
+-- RETRY Temporary failure.
+data ErrorCode = NO_MATCH | FAILED | RETRY deriving (Eq, Show)
+
 -- | A hostname (e.g. smtp.example.com)
 type Host = String
 
@@ -88,9 +95,14 @@ data SiteConfig = SiteConfig {
 } deriving (Show, Eq)
 
 -- | A Task is a URL to check
-data Task = Check Site URL
+data Task = Task {
+  -- Type of site
+  site::Site,
+  -- How many time have we checked this URL already?
+  ntimes::Int,
+  -- URL of the paste to check
+  paste::URL
+} deriving (Eq, Show)
 
 -- | Simple type to store URLs
 type URL = String        
-
-
