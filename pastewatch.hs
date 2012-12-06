@@ -8,6 +8,7 @@
 
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.STM
+import Control.Error
 import Control.Monad.Reader
 import Control.Monad.State
 import qualified Data.ByteString as S
@@ -42,13 +43,15 @@ checkone jobs checkf = do
     job <- atomically $ readTChan jobs
     let url = paste job
     print $ "Checking " ++ url
-    result <- doCheck (site job) url checkf
+    result <- runEitherT $ tryIO $ doCheck (site job) url checkf
     case result of
-        Left err -> case err of
-            RETRY    -> reschedule jobs job
-            FAILED   -> return ()
-            NO_MATCH -> return () 
-        Right content -> emailFile url content
+        Left _  -> return ()
+        Right r -> case r of
+            Left e -> case e of
+                RETRY    -> reschedule jobs job
+                FAILED   -> return ()
+                NO_MATCH -> return () 
+            Right content -> emailFile url content
 
 -- | Put task back on a queue for later
 -- unless we've already seen it 5 times
@@ -93,8 +96,10 @@ runControl = do
     runControl
   where
     getURLs sitet = do
-        urls <- liftIO $ getNewPastes sitet
-        filterM notSeenURL urls >>= sendJobs sitet
+        urls <- runEitherT $ tryIO $ getNewPastes sitet
+        case urls of
+            Left _  -> return ()
+            Right u -> filterM notSeenURL u >>= sendJobs sitet
 
 -- | Spawn a control thread
 spawnControlThreads::MonadIO m => TChan Task -> SiteConfig -> m ThreadId
