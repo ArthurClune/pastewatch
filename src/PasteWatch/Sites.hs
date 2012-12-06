@@ -19,18 +19,12 @@ import PasteWatch.Types
 
 -- | Check contents of a URL against given check function
 doCheck::Site -> URL -> (S.ByteString->Bool) -> IO (Either ErrorCode String)
-
-doCheck Pastebin url contentMatch =
-    doCheck' url contentMatch (css "textarea")
-
-doCheck Pastie url contentMatch = 
-    doCheck' url contentMatch (css "pre[class=textmate-source]")
-
-doCheck SkidPaste url contentMatch = 
-    doCheck' url contentMatch (css "div[class=content]")
-
-doCheck Slexy url contentMatch =
-    doCheck' url contentMatch (css "div[class=text]")    
+doCheck sitet url contentMatch =
+    case sitet of
+        Pastebin  -> doCheck' url contentMatch (css "textarea")
+        Pastie    -> doCheck' url contentMatch (css "pre[class=textmate-source]")
+        SkidPaste -> doCheck' url contentMatch (css "div[class=content]")
+        Slexy     -> doCheck' url contentMatch (css "div[class=text]")    
 
 -- | Get all the new pastes from a given site
 getNewPastes::Site -> IO [URL]
