@@ -33,6 +33,8 @@ data Config = Config {
    -- | domain that email comes from
   domain         :: Domain,
   -- | Number of Haskell (lightweight) threads to use
+  -- for downloading. Total number of threads used
+  -- equals nthreads + number of sites + 1
   -- N of these are mapped onto M OS threads where M is set
   -- by the +RTS -N option (see README.md)
   nthreads       :: Int,
