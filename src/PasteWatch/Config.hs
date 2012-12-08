@@ -29,22 +29,26 @@ siteConfigs = [
   SiteConfig {
     siteType  = Pastebin,
     delayTime = 10,
-    pruneTime = 3600
+    pruneTime = 3600,
+    pauseMax  = 7
   },
   SiteConfig {
     siteType  = Pastie,
     delayTime = 33,      -- 30 sec + skew
-    pruneTime = 3600 
+    pruneTime = 3600,
+    pauseMax  = 1
   },
   SiteConfig {
     siteType  = SkidPaste,
     delayTime = 247,     -- 4 mins + skew
-    pruneTime = 7200
+    pruneTime = 7200,
+    pauseMax  = 1
   },
   SiteConfig {
     siteType  = Slexy,
     delayTime = 251,     -- 4 mins + skew
-    pruneTime = 86400 
+    pruneTime = 86400,
+    pauseMax  = 1
   }
  ]  
 

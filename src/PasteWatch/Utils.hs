@@ -12,7 +12,7 @@ import Control.Concurrent (forkIO)
 import Control.Monad.Reader
 import Control.Monad.State
 import Data.IORef
-import qualified Data.Map as Map
+import qualified Data.HashMap.Strict as Map
 import Network.SMTP.Client
 import Network.Socket
 import System.Time (getClockTime, toCalendarTime)
@@ -24,24 +24,24 @@ import PasteWatch.Types hiding (recipients, sender, smtpServer)
 -- forkN
 -- fork N copies for the given action
 forkN::Int -> IO () -> IO ()
-forkN n action = 
-    replicateM_ n . forkIO $ action 
+forkN n action =
+    replicateM_ n . forkIO $ action
 
 -- | Send an email with given subject and contents
 -- using the given (unauthenicated) smtp server
 -- myDomain is the domain of the sender
 sendEmail::Email
            -> [Email]
-           -> Domain 
+           -> Domain
            -> Host
            -> String
-           -> String 
+           -> String
            -> IO()
 sendEmail sender
           recipients
           myDomain
           smtpServer
-          subject 
+          subject
           content = do
     now <- getClockTime
     nowCT <- toCalendarTime now
@@ -64,7 +64,7 @@ sendEmail sender
     toName (n,e) = NameAddr (Just n) e
 
 ---------------------------------------------------
--- Functions to maintain our map of urls and time 
+-- Functions to maintain our map of urls and time
 -- seen
 ---------------------------------------------------
 
@@ -81,10 +81,10 @@ pruneURLs::Job ()
 pruneURLs = do
     now <- liftIO Time.getCurrentTime
     sc <- ask
-    let filterf x = Time.diffUTCTime now x < pTime 
-        pTime = pruneTime sc 
+    let filterf x = Time.diffUTCTime now x < pTime
+        pTime = pruneTime sc
       in
-        modify $ \s -> s { linksSeen = 
+        modify $ \s -> s { linksSeen =
             Map.filter filterf (linksSeen s) }
 
 -- | If we have not seen a link before, return True and record that we have
@@ -92,6 +92,6 @@ pruneURLs = do
 notSeenURL::URL -> Job Bool
 notSeenURL url =  do
     seen <- Map.member url `liftM` gets linksSeen
-    if seen 
+    if seen
         then return False
         else insertURL url >> return True

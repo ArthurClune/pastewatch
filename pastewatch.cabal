@@ -17,18 +17,18 @@ executable pastewatch
   default-language:    Haskell2010
   ghc-options:         -Wall -threaded -rtsopts
   main-is:             pastewatch.hs
-  build-depends:       base ==4.5.*, bytestring, ConfigFile, containers, 
-                       errors, mtl, parallel-io, pastewatch, stm, text, time, 
-                       transformers
+  build-depends:       base ==4.5.*, bytestring, ConfigFile, unordered-containers,
+                       errors, mtl, parallel-io, pastewatch, random, stm,
+                       text, time, transformers
 
 Library
-    Exposed-Modules:  PasteWatch.Alert, PasteWatch.Config, 
-                      PasteWatch.Sites, PasteWatch.Types, 
+    Exposed-Modules:  PasteWatch.Alert, PasteWatch.Config,
+                      PasteWatch.Sites, PasteWatch.Types,
                       PasteWatch.Utils
     hs-source-dirs:   src
     default-language: Haskell98
-    Build-depends:    attoparsec, base, bytestring, containers, errors,
-                      HandsomeSoup, HTTP, hxt, mtl, network, old-time, 
+    Build-depends:    attoparsec, base, bytestring, unordered-containers, errors,
+                      HandsomeSoup, HTTP, hxt, mtl, network, old-time,
                       SMTPClient, stm, text, time, transformers
     ghc-options:      -Wall
 
