@@ -27,6 +27,7 @@ import Control.Monad.State
 import Data.ByteString.Char8 as S
 import Data.HashMap.Strict as Map
 import Data.Time.Clock as Time
+import System.Random
 
 --------------------------------------------------------------
 -- simple types
@@ -69,13 +70,7 @@ data SiteConfig = SiteConfig {
     delayTime :: !Int,
     -- time (in seconds) after which we remove URLs
     -- from the seen list for this site
-    pruneTime :: !Time.NominalDiffTime,
-    -- pauseMax
-    -- we wait for a random number between 0 and pauseMax seconds before
-    -- downloading the URL
-    -- Use this to stop sites blocking downloads due to too many requests in too short
-    -- a time period
-    pauseMax  :: !Int
+    pruneTime :: !Time.NominalDiffTime
 } deriving (Show, Eq)
 
 
@@ -93,6 +88,12 @@ data Config = Config {
   -- N of these are mapped onto M OS threads where M is set
   -- by the +RTS -N option (see README.md)
   nthreads       :: !Int,
+  -- pauseMax
+  -- we wait for a random number between 0 and pauseMax seconds before
+  -- downloading the URL
+  -- Use this to stop sites blocking downloads due to too many requests in too short
+  -- a time period
+  pauseMax  :: !Int,
   -- | Send alert emails as?
   sender         :: !Email,
   -- | Send alert emails to?
@@ -105,7 +106,7 @@ data Config = Config {
 -- Monad transformer stacks
 --------------------------------------------------------------
 
--- | Monad stack wrapping State
+-- | Monad stack wrapping State and Reader
 -- This the monad that the control threads run in
 newtype Control a  = Control {
       runControl :: StateT JobState (ReaderT SiteConfig IO) a
@@ -114,6 +115,8 @@ newtype Control a  = Control {
 execControl::Control a -> JobState -> SiteConfig -> IO JobState
 execControl s = runReaderT . (execStateT . runControl) s
 
+-- | Monad stack wrapping State and Reader
+-- This the monad that the worker threads run in
 newtype Worker a = Worker {
     runWorker :: StateT WorkerState (ReaderT Config IO) a
   } deriving (Monad, MonadReader Config, MonadState WorkerState, MonadIO)
@@ -140,7 +143,9 @@ data WorkerState = WorkerState {
   -- the check function
   -- this is static for now, but in time we want this to change, so put it in
   -- State not Reader
-  checkFunction :: S.ByteString -> Bool
+  checkFunction :: S.ByteString -> Bool,
+  -- random number generator for each thread
+  randGen       :: StdGen
 }
 
 -- | A Task is a URL to check

@@ -11,9 +11,10 @@ import Control.Concurrent.STM
 import Control.Error
 import Control.Monad.Reader
 import Control.Monad.State
-import qualified Data.ByteString as S
 import qualified Data.HashMap.Strict as Map
-import GHC.Conc.Sync (ThreadId)
+import Data.List (unfoldr)
+import System.IO.Unsafe (unsafePerformIO)
+import System.Random
 
 import PasteWatch.Alert  (checkContent)
 import PasteWatch.Config (config, siteConfigs)
@@ -43,15 +44,27 @@ emailFile url content = do
 -- (deals with checking individual pastes)
 ---------------------------------------------------
 
+
+pause::Worker()
+pause = do
+    st <- get
+    conf <- ask
+    let (delayt, gen') = randomR (10000, pauseMax conf * 1000000) (randGen st)
+    liftIO $ threadDelay $ delayt
+    put st { randGen  = gen' }
+    return ()
+
 -- | Check one url, resheduling on failure if required
+-- To avoid the thundering herd problem, we spin for a
+-- random time before starting
 checkone::Worker ()
 checkone = forever $ do
-    chan   <- gets jobsQueue
-    checkf <- gets checkFunction
-    job    <- liftIO $ atomically $ readTChan chan
+    st <- get
+    job  <- liftIO $ atomically $ readTChan (jobsQueue st)
     let url = paste job
+    pause
     liftIO $ print $ "Checking " ++ url
-    result <- runEitherT $ tryIO $ doCheck (site job) url checkf
+    result <- runEitherT $ tryIO $ doCheck (site job) url (checkFunction st)
     case result of
         Left _  -> return ()
         Right r -> case r of
@@ -105,21 +118,6 @@ controlThread = forever $ do
             Left _  -> return ()
             Right u -> filterM notSeenURL u >>= sendJobs sitet
 
--- | Spawn a control thread
-spawnControlThread::MonadIO m => TChan Task -> SiteConfig -> m ThreadId
-spawnControlThread jobs sc =
-    liftIO $ forkIO
-        (void $ execControl controlThread (JobState jobs Map.empty) sc)
-
--- | Spawn a new worker thead
-spawnWorkerThread::MonadIO m => TChan Task
-                             -> Config
-                             -> (S.ByteString -> Bool)
-                             -> m ThreadId
-spawnWorkerThread jobs conf checkf =
-    liftIO $ forkIO
-        (void $ execWorker checkone (WorkerState jobs checkf) conf)
-
 ---------------------------------------------------
 -- | main
 --
@@ -129,8 +127,15 @@ spawnWorkerThread jobs conf checkf =
 main :: IO ()
 main = do
     jobs <- newTChanIO
-    replicateM_ (nthreads config)
-        (spawnWorkerThread jobs config
-            (checkContent (alertStrings config) (alertStringsCI config)))
+    seed <- newStdGen
+    let seeds = randomlist (nthreads config) seed
+    mapM_ (spawnWorkerThread jobs config checkf) seeds
     mapM_ (spawnControlThread jobs) siteConfigs
     forever $ threadDelay (360000 * 1000000)
+  where
+    spawnWorkerThread jobs conf f seed = forkIO
+            (void $ execWorker checkone (WorkerState jobs f (mkStdGen seed)) conf)
+    spawnControlThread jobs sc = forkIO
+            (void $ execControl controlThread (JobState jobs Map.empty) sc)
+    checkf = checkContent (alertStrings config) (alertStringsCI config)
+    randomlist n = take n . unfoldr (Just . random)

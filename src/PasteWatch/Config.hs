@@ -19,6 +19,7 @@ config = Config {
     alertStringsCI = ["my company inc"],
     domain         = "example.com",
     nthreads       = 32,
+    pauseMax       = 5,
     sender         = ("Me", "do-not-reply@example.com"),
     smtpServer     = "smtp.example.com",
     recipients     = [("Mr. Me", "me@example.com")]
@@ -29,26 +30,22 @@ siteConfigs = [
   SiteConfig {
     siteType  = Pastebin,
     delayTime = 10,
-    pruneTime = 600,
-    pauseMax  = 7
+    pruneTime = 600
   },
   SiteConfig {
     siteType  = Pastie,
     delayTime = 33,      -- 30 sec + skew
-    pruneTime = 1200,
-    pauseMax  = 1
+    pruneTime = 1200
   },
   SiteConfig {
     siteType  = SkidPaste,
     delayTime = 247,     -- 4 mins + skew
-    pruneTime = 7200,
-    pauseMax  = 1
+    pruneTime = 7200
   },
   SiteConfig {
     siteType  = Slexy,
     delayTime = 251,     -- 4 mins + skew
-    pruneTime = 7200,
-    pauseMax  = 1
+    pruneTime = 7200
   }
  ]
 

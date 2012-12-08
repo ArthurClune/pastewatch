@@ -15,7 +15,7 @@ source-repository head
 
 executable pastewatch
   default-language:    Haskell2010
-  ghc-options:         -Wall -threaded -rtsopts
+  ghc-options:         -Wall -threaded -rtsopts -O2
   main-is:             pastewatch.hs
   build-depends:       base ==4.5.*, bytestring, ConfigFile, unordered-containers,
                        errors, mtl, parallel-io, pastewatch, random, stm,
@@ -28,9 +28,9 @@ Library
     hs-source-dirs:   src
     default-language: Haskell98
     Build-depends:    attoparsec, base, bytestring, unordered-containers, errors,
-                      HandsomeSoup, HTTP, hxt, mtl, network, old-time,
+                      HandsomeSoup, HTTP, hxt, mtl, network, old-time, random,
                       SMTPClient, stm, text, time, transformers
-    ghc-options:      -Wall
+    ghc-options:      -Wall -O2
 
 Test-suite pastewatch-tests
   Type:              exitcode-stdio-1.0
