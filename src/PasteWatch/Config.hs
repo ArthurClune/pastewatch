@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 -- | All user config goes here
 module PasteWatch.Config
-    ( 
+    (
       config,
       siteConfigs
     ) where
@@ -29,13 +29,13 @@ siteConfigs = [
   SiteConfig {
     siteType  = Pastebin,
     delayTime = 10,
-    pruneTime = 3600,
+    pruneTime = 600,
     pauseMax  = 7
   },
   SiteConfig {
     siteType  = Pastie,
     delayTime = 33,      -- 30 sec + skew
-    pruneTime = 3600,
+    pruneTime = 1200,
     pauseMax  = 1
   },
   SiteConfig {
@@ -47,8 +47,8 @@ siteConfigs = [
   SiteConfig {
     siteType  = Slexy,
     delayTime = 251,     -- 4 mins + skew
-    pruneTime = 86400,
+    pruneTime = 7200,
     pauseMax  = 1
   }
- ]  
+ ]
 
