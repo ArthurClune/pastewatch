@@ -38,29 +38,32 @@ emailFile url content = do
 ---------------------------------------------------
 
 -- | Check one url, resheduling on failure if required
-checkone::TChan Task -> (S.ByteString->Bool) -> IO ()
-checkone jobs checkf = do
-    job <- atomically $ readTChan jobs
+checkone::Worker ()
+checkone = forever $ do
+    chan   <- gets jobsQueue
+    checkf <- gets checkFunction
+    job    <- liftIO $ atomically $ readTChan chan
     let url = paste job
-    print $ "Checking " ++ url
+    liftIO $ print $ "Checking " ++ url
     result <- runEitherT $ tryIO $ doCheck (site job) url checkf
     case result of
         Left _  -> return ()
         Right r -> case r of
             Left e -> case e of
-                RETRY    -> reschedule jobs job
+                RETRY    -> reschedule job
                 FAILED   -> return ()
                 NO_MATCH -> return ()
-            Right content -> emailFile url content
+            Right content -> liftIO $ emailFile url content
 
 -- | Put task back on a queue for later
 -- unless we've already seen it 5 times
-reschedule::TChan Task -> Task -> IO ()
-reschedule jobs job = do
-    print $ "Rescheduling " ++ show job
-    unless (ntimes' > 5) $ do
+reschedule::Task -> Worker ()
+reschedule job = do
+    liftIO $ print $ "Rescheduling " ++ show job
+    chan <- gets jobsQueue
+    liftIO $ unless (ntimes' > 5) $ do
         threadDelay $ 627000000 * ntimes'   -- 5 mins + a bit
-        atomically $ writeTChan jobs Task {
+        atomically $ writeTChan chan Task {
                         site = site job,
                         ntimes = ntimes',
                         paste = paste job
@@ -68,32 +71,27 @@ reschedule jobs job = do
   where
     ntimes' = ntimes job + 1
 
--- | Grab a url from the job queue, download and check
-checkPaste::TChan Task -> IO ()
-checkPaste jobs = forever $ checkone jobs checkContent
-
 ---------------------------------------------------
 -- Master thread code
 -- (one thread per site)
 ---------------------------------------------------
 
 -- | Put urls into the shared queue
-sendJobs::Site -> [URL] -> Job ()
+sendJobs::Site -> [URL] -> Control ()
 sendJobs sitet links = do
     chan <- gets linkQueue
     liftIO . atomically $ mapM_ (writeTChan chan . Task sitet 0) links
 
 -- | Loop forever, pulling the new pastes for a give site and
 -- putting into the queue for other threads to pick up
-runControl::Job ()
-runControl = do
+controlThread::Control ()
+controlThread = forever $ do
     sc <- ask
     let sitet = siteType sc
     let dtime = delayTime sc * 1000000
     getURLs sitet
     liftIO $ threadDelay dtime
     pruneURLs
-    runControl
   where
     getURLs sitet = do
         urls <- runEitherT $ tryIO $ getNewPastes sitet
@@ -102,10 +100,19 @@ runControl = do
             Right u -> filterM notSeenURL u >>= sendJobs sitet
 
 -- | Spawn a control thread
-spawnControlThreads::MonadIO m => TChan Task -> SiteConfig -> m ThreadId
-spawnControlThreads jobs sc =
+spawnControlThread::MonadIO m => TChan Task -> SiteConfig -> m ThreadId
+spawnControlThread jobs sc =
     liftIO $ forkIO
-        (void $ execJob runControl (JobState jobs Map.empty) sc)
+        (void $ execControl controlThread (JobState jobs Map.empty) sc)
+
+-- | Spawn a new worker thead
+spawnWorkerThread::MonadIO m => TChan Task
+                             -> [SiteConfig]
+                             -> (S.ByteString -> Bool)
+                             -> m ThreadId
+spawnWorkerThread jobs scs checkf =
+    liftIO $ forkIO
+        (void $ execWorker checkone (WorkerState jobs checkf) scs)
 
 ---------------------------------------------------
 -- | main
@@ -116,6 +123,6 @@ spawnControlThreads jobs sc =
 main :: IO ()
 main = do
     jobs <- newTChanIO
-    forkN (nthreads config) (checkPaste jobs)
-    mapM_ (spawnControlThreads jobs) siteConfigs
+    replicateM_ (nthreads config) (spawnWorkerThread jobs siteConfigs checkContent)
+    mapM_ (spawnControlThread jobs) siteConfigs
     forever $ threadDelay (360000 * 1000000)

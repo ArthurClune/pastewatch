@@ -1,20 +1,24 @@
-{-# LANGUAGE BangPatterns, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 -- | Core types
 module PasteWatch.Types
     (
         Config(..),
+        Control,
         Domain,
         Email,
         ErrorCode(..),
         Host,
-        Job,
         JobState(..),
         Task(..) ,
         Site(..),
         SiteConfig(..),
         URL,
-        execJob,
-        runJob
+        Worker,
+        WorkerState(..),
+        execControl,
+        runControl,
+        execWorker,
+        runWorker
     ) where
 
 import Control.Concurrent.STM (TChan)
@@ -24,27 +28,9 @@ import Data.ByteString.Char8 as S
 import Data.HashMap.Strict as Map
 import Data.Time.Clock as Time
 
--- | Type to hold user config
-data Config = Config {
-   -- | Strings to alert on (case sensitive) if seen in a paste
-  alertStrings   :: ![S.ByteString],
-  -- | Strings to alert on (case insensitive) if seen in a paste
-  alertStringsCI :: ![S.ByteString],
-   -- | domain that email comes from
-  domain         :: !Domain,
-  -- | Number of Haskell (lightweight) threads to use
-  -- for downloading. Total number of threads used
-  -- equals nthreads + number of sites + 1
-  -- N of these are mapped onto M OS threads where M is set
-  -- by the +RTS -N option (see README.md)
-  nthreads       :: !Int,
-  -- | Send alert emails as?
-  sender         :: !Email,
-  -- | Send alert emails to?
-  recipients     :: ![Email],
-  -- | SMTP server to use to send email via
-  smtpServer     :: !Host
-}
+--------------------------------------------------------------
+-- simple types
+--------------------------------------------------------------
 
 -- | A domain domain (e.g. "example.com")
 type Domain = String
@@ -61,22 +47,12 @@ data ErrorCode = NO_MATCH | FAILED | RETRY deriving (Eq, Show)
 -- | A hostname (e.g. smtp.example.com)
 type Host = String
 
--- | Monad stack wrapping State
-newtype Job a  = Job {
-      runJob:: StateT JobState (ReaderT SiteConfig IO) a
-    } deriving (Monad, MonadReader SiteConfig, MonadState JobState, MonadIO)
+-- | Simple type to store URLs
+type URL = String
 
-execJob::Job a -> JobState -> SiteConfig -> IO JobState
-execJob s = runReaderT . (execStateT . runJob) s
-
--- | State for our channel: list of done URLs and
--- config for the site we are doing
-data JobState = JobState {
-    -- STM queue for passing URLs around
-    linkQueue :: TChan Task,
-    -- per thread map of URLs seen for this site
-    linksSeen :: Map.HashMap URL Time.UTCTime
-}
+--------------------------------------------------------------
+-- Config data structures
+--------------------------------------------------------------
 
 -- | The different sites
 --
@@ -102,6 +78,71 @@ data SiteConfig = SiteConfig {
     pauseMax  :: !Int
 } deriving (Show, Eq)
 
+
+-- | Type to hold user config
+data Config = Config {
+   -- | Strings to alert on (case sensitive) if seen in a paste
+  alertStrings   :: ![S.ByteString],
+  -- | Strings to alert on (case insensitive) if seen in a paste
+  alertStringsCI :: ![S.ByteString],
+   -- | domain that email comes from
+  domain         :: !Domain,
+  -- | Number of Haskell (lightweight) threads to use
+  -- for downloading. Total number of threads used
+  -- equals nthreads + number of sites + 1
+  -- N of these are mapped onto M OS threads where M is set
+  -- by the +RTS -N option (see README.md)
+  nthreads       :: !Int,
+  -- | Send alert emails as?
+  sender         :: !Email,
+  -- | Send alert emails to?
+  recipients     :: ![Email],
+  -- | SMTP server to use to send email via
+  smtpServer     :: !Host
+}
+
+--------------------------------------------------------------
+-- Monad transformer stacks
+--------------------------------------------------------------
+
+-- | Monad stack wrapping State
+-- This the monad that the control threads run in
+newtype Control a  = Control {
+      runControl :: StateT JobState (ReaderT SiteConfig IO) a
+    } deriving (Monad, MonadReader SiteConfig, MonadState JobState, MonadIO)
+
+execControl::Control a -> JobState -> SiteConfig -> IO JobState
+execControl s = runReaderT . (execStateT . runControl) s
+
+newtype Worker a = Worker {
+    runWorker :: StateT WorkerState (ReaderT [SiteConfig] IO) a
+  } deriving (Monad, MonadReader [SiteConfig], MonadState WorkerState, MonadIO)
+
+execWorker::Worker a -> WorkerState -> [SiteConfig] -> IO WorkerState
+execWorker s = runReaderT . (execStateT . runWorker) s
+
+--------------------------------------------------------------
+-- Data to pass between worker and control threads
+--------------------------------------------------------------
+
+-- | State for our channel: list of done URLs and
+-- config for the site we are doing
+data JobState = JobState {
+    -- STM queue for passing URLs around
+    linkQueue :: TChan Task,
+    -- per thread map of URLs seen for this site
+    linksSeen :: Map.HashMap URL Time.UTCTime
+}
+
+data WorkerState = WorkerState {
+  -- our shared queue
+  jobsQueue     :: TChan Task,
+  -- the check function
+  -- this is static for now, but in time we want this to change, so put it in
+  -- State not Reader
+  checkFunction :: S.ByteString -> Bool
+}
+
 -- | A Task is a URL to check
 data Task = Task {
   -- Type of site
@@ -111,6 +152,3 @@ data Task = Task {
   -- URL of the paste to check
   paste  :: !URL
 } deriving (Eq, Show)
-
--- | Simple type to store URLs
-type URL = String

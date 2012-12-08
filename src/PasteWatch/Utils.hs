@@ -1,14 +1,12 @@
 -- | Some misc utility functions
 module PasteWatch.Utils
     (
-      forkN,
       insertURL,
       notSeenURL,
       pruneURLs,
       sendEmail
     ) where
 
-import Control.Concurrent (forkIO)
 import Control.Monad.Reader
 import Control.Monad.State
 import Data.IORef
@@ -18,14 +16,8 @@ import Network.Socket
 import System.Time (getClockTime, toCalendarTime)
 import qualified Data.Time.Clock as Time
 
---import PasteWatch.Types (Domain, Email, Host, Job, SiteConfig, URL)
+--import PasteWatch.Types (Domain, Email, Host, Control, SiteConfig, URL)
 import PasteWatch.Types hiding (recipients, sender, smtpServer)
-
--- forkN
--- fork N copies for the given action
-forkN::Int -> IO () -> IO ()
-forkN n action =
-    replicateM_ n . forkIO $ action
 
 -- | Send an email with given subject and contents
 -- using the given (unauthenicated) smtp server
@@ -70,14 +62,14 @@ sendEmail sender
 
 -- | Add a link to the map of links we have seen
 -- Key is the url, value is timestamp
-insertURL :: URL -> Job ()
+insertURL :: URL -> Control ()
 insertURL l = do
     time <- liftIO Time.getCurrentTime
     modify $ \s ->
       s { linksSeen = Map.insert l time (linksSeen s) }
 
 -- prune all URLs first added more than pruneTime ago
-pruneURLs::Job ()
+pruneURLs::Control ()
 pruneURLs = do
     now <- liftIO Time.getCurrentTime
     sc <- ask
@@ -89,7 +81,7 @@ pruneURLs = do
 
 -- | If we have not seen a link before, return True and record that we have
 -- now seen it.  Otherwise, return False.
-notSeenURL::URL -> Job Bool
+notSeenURL::URL -> Control Bool
 notSeenURL url =  do
     seen <- Map.member url `liftM` gets linksSeen
     if seen
