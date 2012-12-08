@@ -115,10 +115,10 @@ execControl::Control a -> JobState -> SiteConfig -> IO JobState
 execControl s = runReaderT . (execStateT . runControl) s
 
 newtype Worker a = Worker {
-    runWorker :: StateT WorkerState (ReaderT [SiteConfig] IO) a
-  } deriving (Monad, MonadReader [SiteConfig], MonadState WorkerState, MonadIO)
+    runWorker :: StateT WorkerState (ReaderT Config IO) a
+  } deriving (Monad, MonadReader Config, MonadState WorkerState, MonadIO)
 
-execWorker::Worker a -> WorkerState -> [SiteConfig] -> IO WorkerState
+execWorker::Worker a -> WorkerState -> Config -> IO WorkerState
 execWorker s = runReaderT . (execStateT . runWorker) s
 
 --------------------------------------------------------------

@@ -22,13 +22,15 @@ import PasteWatch.Types
 import PasteWatch.Utils
 
 -- | email the admins
-emailFile::URL -> String -> IO ()
+emailFile::URL -> String -> Worker ()
 emailFile url content = do
-    print $ "Alerting on URL " ++ url
-    sendEmail (sender config)
-               (recipients config)
-               (domain config)
-               (smtpServer config)
+    conf <- ask
+    liftIO $ do
+        print $ "Alerting on URL " ++ url
+        sendEmail (sender conf)
+               (recipients conf)
+               (domain conf)
+               (smtpServer conf)
                "Pastebin alert"
                (url ++ "\n\n" ++ content)
 
@@ -53,7 +55,7 @@ checkone = forever $ do
                 RETRY    -> reschedule job
                 FAILED   -> return ()
                 NO_MATCH -> return ()
-            Right content -> liftIO $ emailFile url content
+            Right content -> emailFile url content
 
 -- | Put task back on a queue for later
 -- unless we've already seen it 5 times
@@ -107,12 +109,12 @@ spawnControlThread jobs sc =
 
 -- | Spawn a new worker thead
 spawnWorkerThread::MonadIO m => TChan Task
-                             -> [SiteConfig]
+                             -> Config
                              -> (S.ByteString -> Bool)
                              -> m ThreadId
-spawnWorkerThread jobs scs checkf =
+spawnWorkerThread jobs conf checkf =
     liftIO $ forkIO
-        (void $ execWorker checkone (WorkerState jobs checkf) scs)
+        (void $ execWorker checkone (WorkerState jobs checkf) conf)
 
 ---------------------------------------------------
 -- | main
@@ -123,6 +125,6 @@ spawnWorkerThread jobs scs checkf =
 main :: IO ()
 main = do
     jobs <- newTChanIO
-    replicateM_ (nthreads config) (spawnWorkerThread jobs siteConfigs checkContent)
+    replicateM_ (nthreads config) (spawnWorkerThread jobs config checkContent)
     mapM_ (spawnControlThread jobs) siteConfigs
     forever $ threadDelay (360000 * 1000000)
