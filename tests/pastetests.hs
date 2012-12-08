@@ -18,41 +18,44 @@ skidpasteMatch c = case c of
     Left  _ -> False
     Right s -> "@example.com" `elem` mconcat (map words $ lines s)
 
+checkContent' = checkContent ["@example.com", "@sub.example.com"] ["my company inc"]
+
+
 -- using unsafePerformIO here means that the
 -- tests will fail if no internet connectivity is available
-unsafeDoCheck site url = unsafePerformIO $ doCheck site url checkContent
+unsafeDoCheck site url = unsafePerformIO $ doCheck site url checkContent'
 
-testList = [TestCase $ assertBool "Test single line T1" 
-                        (checkContent "stuff in a@example.com dsfd"),
-            TestCase $ assertBool "Test single line F1" 
-                        (not $ checkContent "some content in here"),
-            TestCase $ assertBool "Test single line T2" 
-                        (checkContent "yeah root@example.com/password stuff"),
-            TestCase $ assertBool "Test multi line T1"  
-                        (checkContent "one line\ntwo line\ntree @sub.example.com line"),
-            TestCase $ assertBool "Test multi line F1"          
-                        (not $ checkContent "one line  \n two line"),
-            TestCase $ assertEqual "get pastebin" 
+testList = [TestCase $ assertBool "Test single line T1"
+                        (checkContent' "stuff in a@example.com dsfd"),
+            TestCase $ assertBool "Test single line F1"
+                        (not $ checkContent' "some content in here"),
+            TestCase $ assertBool "Test single line T2"
+                        (checkContent' "yeah root@example.com/password stuff"),
+            TestCase $ assertBool "Test multi line T1"
+                        (checkContent' "one line\ntwo line\ntree @sub.example.com line"),
+            TestCase $ assertBool "Test multi line F1"
+                        (not $ checkContent' "one line  \n two line"),
+            TestCase $ assertEqual "get pastebin"
                         (Right "testing @example.com testing")
                         (unsafeDoCheck Pastebin "http://pastebin.com/bLFduQqs"),
-            TestCase $ assertEqual "get pastie" 
+            TestCase $ assertEqual "get pastie"
                         (Right "testing @example.com testing\n")
                         (unsafeDoCheck Pastie "http://pastie.org/5406980"),
-            TestCase $ assertBool "get skidpaste" 
+            TestCase $ assertBool "get skidpaste"
                         (skidpasteMatch $ unsafeDoCheck SkidPaste "http://skidpaste.org/3cOMCRpA"),
-            TestCase $ assertEqual "get slexy" 
+            TestCase $ assertEqual "get slexy"
                         (Right "testing @example.com testing\n")
-                        (unsafeDoCheck Slexy "http://slexy.org/view/s2Fv9q8J2H")           
+                        (unsafeDoCheck Slexy "http://slexy.org/view/s2Fv9q8J2H")
            ]
 
 -- test the new paste functions don't return an empty list
 testNewPastes =   map
-                    (\s -> TestCase $ assertBool "" 
+                    (\s -> TestCase $ assertBool ""
                                 (null $ unsafePerformIO $ getNewPastes $ siteType s))
                     siteConfigs
 
 main::IO ()
-main = 
+main =
     do c1 <- runTestTT $ TestList testList
        c2 <- runTestTT $ TestList testNewPastes
        if any (\x -> errors x /= 0 && failures x /= 0) [c1, c2]

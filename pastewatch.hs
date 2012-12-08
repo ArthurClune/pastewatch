@@ -21,6 +21,10 @@ import PasteWatch.Sites  (doCheck, getNewPastes)
 import PasteWatch.Types
 import PasteWatch.Utils
 
+---------------------------------------------------
+-- Low level functions
+---------------------------------------------------
+
 -- | email the admins
 emailFile::URL -> String -> Worker ()
 emailFile url content = do
@@ -125,6 +129,8 @@ spawnWorkerThread jobs conf checkf =
 main :: IO ()
 main = do
     jobs <- newTChanIO
-    replicateM_ (nthreads config) (spawnWorkerThread jobs config checkContent)
+    replicateM_ (nthreads config)
+        (spawnWorkerThread jobs config
+            (checkContent (alertStrings config) (alertStringsCI config)))
     mapM_ (spawnControlThread jobs) siteConfigs
     forever $ threadDelay (360000 * 1000000)
