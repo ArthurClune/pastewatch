@@ -13,17 +13,18 @@ $ cabal install
 
 You'll get a binary pastewatch in ~/.cabal/bin (Linux) or ~/Library/Haskell/bin (OS X)
 
+Copy sample.config to my.config (or whatever) and edit the values in there suitably.
+
 Run with
 ```
-$ pastewatch +RTS -N4 -RTS 
+$ pastewatch +RTS -N4 -k48m -RTS my.config
 ```
 where the number -N4 = number of cores you want the program to use.
 
 Tests
 -----
 
-A simple test runner is included (tests/pastetests.hs) and can be used to check that your patterns are matching as expected. 
-Edit pastetests.hs to match your Config.hs file, then run
+A simple test runner is included (tests/pastetests.hs)
 ```
 $ cabal test
 ```
@@ -33,7 +34,5 @@ Bugs
 ----
 
 1) It currently uses Attoparsec.ByteString. It should use Attoparsec.Text instead for unicode goodness
-
-2) The URL fetch code needs to implement backoff and retry on failure
 
 

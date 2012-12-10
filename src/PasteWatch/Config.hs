@@ -1,51 +1,48 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NamedFieldPuns, OverlappingInstances, OverloadedStrings #-}
 -- | All user config goes here
 module PasteWatch.Config
     (
-      config,
-      siteConfigs
+      parseArgs,
+      parseConfig
     ) where
+
+import Control.Error
+import Control.Monad (ap, liftM)
+import Data.Configurator
+import Data.Configurator.Types
+import Safe (abort)
+import System.Environment (getArgs)
+import System.Exit
 
 import PasteWatch.Types
 
--- | Data structure for the config
---
--- See the haddock docs for Types.hs for the details
-config::Config
-config = Config {
-    alertStrings   = ["@example.com",
-                      "@sub.example.com"
-                     ],
-    alertStringsCI = ["my company inc"],
-    domain         = "example.com",
-    nthreads       = 32,
-    pauseMax       = 5,
-    sender         = ("Me", "do-not-reply@example.com"),
-    smtpServer     = "smtp.example.com",
-    recipients     = [("Mr. Me", "me@example.com")]
-}
 
-siteConfigs::[SiteConfig]
-siteConfigs = [
-  SiteConfig {
-    siteType  = Pastebin,
-    delayTime = 10,
-    pruneTime = 600
-  },
-  SiteConfig {
-    siteType  = Pastie,
-    delayTime = 33,      -- 30 sec + skew
-    pruneTime = 1200
-  },
-  SiteConfig {
-    siteType  = SkidPaste,
-    delayTime = 247,     -- 4 mins + skew
-    pruneTime = 7200
-  },
-  SiteConfig {
-    siteType  = Slexy,
-    delayTime = 251,     -- 4 mins + skew
-    pruneTime = 7200
-  }
- ]
+instance Configured a => Configured [a] where
+    convert (List xs) = mapM convert xs
+    convert _         = Nothing
+
+-- quick and dirty command line args handling
+parseArgs::IO FilePath
+parseArgs = do
+    args <- getArgs
+    if length args == 1
+        then return (head args)
+        else abort "Usage: urllogs.hs <config file>"
+
+parseConfig::FilePath -> IO UserConfig
+parseConfig file = do
+  c <- runEitherT $ tryIO $ load [Required file]
+  case c of
+    Left _ -> do
+        putStrLn "Error loading config file"
+        exitFailure
+    Right c' -> do
+        UserConfig `liftM` (require c' "alertStrings")
+                      `ap` (require c' "alertStringsCI")
+                      `ap` (require c' "domain")
+                      `ap` (require c' "nthreads")
+                      `ap` (require c' "pauseMax")
+                      `ap` (require c' "sender")
+                      `ap` (require c' "smtpServer")
+                      `ap` (require c' "recipients")
 

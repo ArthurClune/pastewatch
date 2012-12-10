@@ -14,12 +14,13 @@ import Control.Monad.State
 import qualified Data.HashMap.Strict as Map
 import Data.List (unfoldr)
 import System.Random
+import qualified Data.Time.Clock as Time
 
 import PasteWatch.Alert  (checkContent)
-import PasteWatch.Config (config, siteConfigs)
-import PasteWatch.Sites  (doCheck, getNewPastes)
+import PasteWatch.Config (parseArgs, parseConfig)
+import PasteWatch.Sites  (doCheck, getNewPastes, siteConfigs)
 import PasteWatch.Types
-import PasteWatch.Utils
+import PasteWatch.Utils (sendEmail)
 
 ---------------------------------------------------
 -- Low level functions
@@ -30,7 +31,7 @@ emailFile::URL -> String -> Worker ()
 emailFile url content = do
     conf <- ask
     liftIO $ do
-        print $ "Alerting on URL " ++ url
+        putStrLn $ "Alerting on URL " ++ url
         sendEmail (sender conf)
                (recipients conf)
                (domain conf)
@@ -39,17 +40,49 @@ emailFile url content = do
                (url ++ "\n\n" ++ content)
 
 ---------------------------------------------------
+-- Functions to maintain our map of urls and time
+-- seen
+---------------------------------------------------
+
+-- | Add a link to the map of links we have seen
+-- Key is the url, value is timestamp
+insertURL :: URL -> Control ()
+insertURL l = do
+    time <- liftIO Time.getCurrentTime
+    modify $ \s ->
+      s { linksSeen = Map.insert l time (linksSeen s) }
+
+-- prune all URLs first added more than pruneTime ago
+pruneURLs::Control ()
+pruneURLs = do
+    now <- liftIO Time.getCurrentTime
+    sc <- ask
+    let filterf x = Time.diffUTCTime now x < pTime
+        pTime = pruneTime sc
+      in
+        modify $ \s -> s { linksSeen =
+            Map.filter filterf (linksSeen s) }
+
+-- | If we have not seen a link before, return True and record that we have
+-- now seen it.  Otherwise, return False.
+notSeenURL::URL -> Control Bool
+notSeenURL url =  do
+    seen <- Map.member url `liftM` gets linksSeen
+    if seen
+        then return False
+        else insertURL url >> return True
+
+---------------------------------------------------
 -- Worker thread code
 -- (deals with checking individual pastes)
 ---------------------------------------------------
 
-
 pause::Worker()
 pause = do
-    st <- get
     conf <- ask
+    st <- get
     let (delayt, gen') = randomR (10000, pauseMax conf * 1000000) (randGen st)
-    liftIO $ threadDelay $ delayt
+    liftIO $ threadDelay delayt
     put st { randGen  = gen' }
     return ()
 
@@ -62,7 +95,7 @@ checkone = forever $ do
     job  <- liftIO $ atomically $ readTChan (jobsQueue st)
     let url = paste job
     pause
-    liftIO $ print $ "Checking " ++ url
+    liftIO $ putStrLn $ "Checking " ++ url
     result <- runEitherT $ tryIO $ doCheck (site job) url (checkFunction st)
     case result of
         Left _  -> return ()
@@ -77,7 +110,7 @@ checkone = forever $ do
 -- unless we've already seen it 5 times
 reschedule::Task -> Worker ()
 reschedule job = do
-    liftIO $ print $ "Rescheduling " ++ show job
+    liftIO $ putStrLn $ "Rescheduling " ++ show job
     chan <- gets jobsQueue
     liftIO $ unless (ntimes' > 5) $ do
         threadDelay $ 627000000 * ntimes'   -- 5 mins + a bit
@@ -125,9 +158,12 @@ controlThread = forever $ do
 
 main :: IO ()
 main = do
+    file <- parseArgs
+    config <- parseConfig file
     jobs <- newTChanIO
     seed <- newStdGen
     let seeds = randomlist (nthreads config) seed
+    let checkf = checkContent (alertStrings config) (alertStringsCI config)
     mapM_ (spawnWorkerThread jobs config checkf) seeds
     mapM_ (spawnControlThread jobs) siteConfigs
     forever $ threadDelay (360000 * 1000000)
@@ -136,5 +172,4 @@ main = do
             (void $ execWorker checkone (WorkerState jobs f (mkStdGen seed)) conf)
     spawnControlThread jobs sc = forkIO
             (void $ execControl controlThread (JobState jobs Map.empty) sc)
-    checkf = checkContent (alertStrings config) (alertStringsCI config)
     randomlist n = take n . unfoldr (Just . random)

@@ -2,7 +2,6 @@
 -- | Core types
 module PasteWatch.Types
     (
-        Config(..),
         Control,
         Domain,
         Email,
@@ -13,6 +12,7 @@ module PasteWatch.Types
         Site(..),
         SiteConfig(..),
         URL,
+        UserConfig(..),
         Worker,
         WorkerState(..),
         execControl,
@@ -37,7 +37,7 @@ import System.Random
 type Domain = String
 
 -- | Email address ("Real Name", "email address")
-type Email = (String, String)
+type Email = String
 
 -- | Custom errors when getting paste
 -- NO_MATCH Doesn't match our check
@@ -75,7 +75,7 @@ data SiteConfig = SiteConfig {
 
 
 -- | Type to hold user config
-data Config = Config {
+data UserConfig = UserConfig {
    -- | Strings to alert on (case sensitive) if seen in a paste
   alertStrings   :: ![S.ByteString],
   -- | Strings to alert on (case insensitive) if seen in a paste
@@ -118,10 +118,10 @@ execControl s = runReaderT . (execStateT . runControl) s
 -- | Monad stack wrapping State and Reader
 -- This the monad that the worker threads run in
 newtype Worker a = Worker {
-    runWorker :: StateT WorkerState (ReaderT Config IO) a
-  } deriving (Monad, MonadReader Config, MonadState WorkerState, MonadIO)
+    runWorker :: StateT WorkerState (ReaderT UserConfig IO) a
+  } deriving (Monad, MonadReader UserConfig, MonadState WorkerState, MonadIO)
 
-execWorker::Worker a -> WorkerState -> Config -> IO WorkerState
+execWorker::Worker a -> WorkerState -> UserConfig -> IO WorkerState
 execWorker s = runReaderT . (execStateT . runWorker) s
 
 --------------------------------------------------------------

@@ -5,17 +5,43 @@ module PasteWatch.Sites
     (
         doCheck,
         getNewPastes,
+        siteConfigs
     ) where
 
 import Control.Exception (onException)
 import qualified Data.ByteString as S
-import qualified Data.ByteString.Char8 as B (pack)   
-import Data.Tree.NTree.TypeDefs  
+import qualified Data.ByteString.Char8 as B (pack)
+import Data.Tree.NTree.TypeDefs
 import Network.HTTP
 import Text.HandsomeSoup ((!), css, parseHtml, fromUrl)
 import Text.XML.HXT.Core hiding (trace)
 
 import PasteWatch.Types
+
+-- | Config for our sites
+siteConfigs::[SiteConfig]
+siteConfigs = [
+  SiteConfig {
+    siteType  = Pastebin,
+    delayTime = 10,
+    pruneTime = 600
+  },
+  SiteConfig {
+    siteType  = Pastie,
+    delayTime = 33,      -- 30 sec + skew
+    pruneTime = 1200
+  },
+  SiteConfig {
+    siteType  = SkidPaste,
+    delayTime = 247,     -- 4 mins + skew
+    pruneTime = 7200
+  },
+  SiteConfig {
+    siteType  = Slexy,
+    delayTime = 251,     -- 4 mins + skew
+    pruneTime = 7200
+  }
+ ]
 
 -- | Check contents of a URL against given check function
 doCheck::Site -> URL -> (S.ByteString->Bool) -> IO (Either ErrorCode String)
@@ -24,7 +50,7 @@ doCheck sitet url contentMatch =
         Pastebin  -> doCheck' url contentMatch (css "textarea")
         Pastie    -> doCheck' url contentMatch (css "pre[class=textmate-source]")
         SkidPaste -> doCheck' url contentMatch (css "div[class=content]")
-        Slexy     -> doCheck' url contentMatch (css "div[class=text]")    
+        Slexy     -> doCheck' url contentMatch (css "div[class=text]")
 
 -- | Get all the new pastes from a given site
 getNewPastes::Site -> IO [URL]
@@ -41,7 +67,7 @@ getNewPastes Pastie = do
 getNewPastes SkidPaste = do
     doc   <- fromUrl "http://skidpaste.org/index.html"
     links <- runX $ doc >>> css "div[id=sidemenu] ul[class=submenu] a" ! "href"
-    return $ filter (/= "") links 
+    return $ filter (/= "") links
 
 getNewPastes Slexy = do
     doc   <- fromUrl "http://slexy.org/recent"
@@ -71,7 +97,7 @@ fetchURL url = do
     resp <- simpleHTTP req
     case resp of
         Left _  -> return $ Left FAILED
-        Right r -> case rspCode r of            
+        Right r -> case rspCode r of
             (2, 0, 0) -> return $ Right $ parseHtml (rspBody r)
             (4, 0, 8) -> return $ Left RETRY
             (5, _, _) -> return $ Left RETRY
