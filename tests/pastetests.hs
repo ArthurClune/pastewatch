@@ -35,6 +35,8 @@ testList = [TestCase $ assertBool "Test single line T1"
                         (checkContent' "one line\ntwo line\ntree @sub.example.com line"),
             TestCase $ assertBool "Test multi line F1"
                         (not $ checkContent' "one line  \n two line"),
+            TestCase $ assertBool "Test singe line F2"
+                        (not $ checkContent' "some text about a company doing stuff"),
             TestCase $ assertEqual "get pastebin"
                         (Right "testing @example.com testing")
                         (unsafeDoCheck Pastebin "http://pastebin.com/bLFduQqs"),
