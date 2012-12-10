@@ -13,7 +13,6 @@ import Control.Monad.Reader
 import Control.Monad.State
 import qualified Data.HashMap.Strict as Map
 import Data.List (unfoldr)
-import System.IO.Unsafe (unsafePerformIO)
 import System.Random
 
 import PasteWatch.Alert  (checkContent)
