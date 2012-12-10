@@ -1,10 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | Check paste sites (as defined in PasteWatch.Sites) for content matching
--- tests from PasteWatch.Alerts
---
--- See Real World Haskell, Chap 28 for the STM code
---
+-- given strings
 
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.STM
