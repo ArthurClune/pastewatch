@@ -93,11 +93,11 @@ data UserConfig = UserConfig {
   -- downloading the URL
   -- Use this to stop sites blocking downloads due to too many requests in too short
   -- a time period
-  pauseMax  :: !Int,
-  -- | Send alert emails as?
-  sender         :: !Email,
+  pauseMax      :: !Int,
   -- | Send alert emails to?
   recipients     :: ![Email],
+  -- | Send alert emails as?
+  sender         :: !Email,
   -- | SMTP server to use to send email via
   smtpServer     :: !Host
 }

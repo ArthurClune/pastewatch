@@ -1,4 +1,4 @@
-{-# LANGUAGE NamedFieldPuns, OverlappingInstances, OverloadedStrings #-}
+{-# LANGUAGE OverlappingInstances, OverloadedStrings #-}
 -- | All user config goes here
 module PasteWatch.Config
     (
@@ -15,7 +15,6 @@ import System.Environment (getArgs)
 import System.Exit
 
 import PasteWatch.Types
-
 
 instance Configured a => Configured [a] where
     convert (List xs) = mapM convert xs
@@ -42,7 +41,7 @@ parseConfig file = do
                       `ap` (require c' "domain")
                       `ap` (require c' "nthreads")
                       `ap` (require c' "pauseMax")
+                      `ap` (require c' "recipients")
                       `ap` (require c' "sender")
                       `ap` (require c' "smtpServer")
-                      `ap` (require c' "recipients")
 
