@@ -1,5 +1,5 @@
 {-# LANGUAGE OverlappingInstances, OverloadedStrings #-}
--- | All user config goes here
+
 module PasteWatch.Config
     (
       parseArgs,

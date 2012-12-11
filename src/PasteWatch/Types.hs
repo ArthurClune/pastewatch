@@ -40,9 +40,6 @@ type Domain = String
 type Email = String
 
 -- | Custom errors when getting paste
--- NO_MATCH Doesn't match our check
--- FAILED Failed permentently e.g. 404
--- RETRY Temporary failure.
 data ErrorCode = NO_MATCH | FAILED | RETRY deriving (Eq, Show)
 
 -- | A hostname (e.g. smtp.example.com)
