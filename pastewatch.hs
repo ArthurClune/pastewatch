@@ -3,21 +3,21 @@
 -- | Check paste sites (as defined in PasteWatch.Sites) for content matching
 -- given strings
 
-import Control.Concurrent (forkIO, threadDelay)
-import Control.Concurrent.STM
-import Control.Error
-import Control.Monad.Reader
-import Control.Monad.State
+import           Control.Concurrent (forkIO, threadDelay)
+import           Control.Concurrent.STM
+import           Control.Error
+import           Control.Monad.Reader
+import           Control.Monad.State
 import qualified Data.HashMap.Strict as Map
-import Data.List (unfoldr)
-import System.Random
+import           Data.List (unfoldr)
 import qualified Data.Time.Clock as Time
+import           System.Random
 
 import PasteWatch.Alert  (checkContent)
 import PasteWatch.Config (parseArgs, parseConfig)
 import PasteWatch.Sites  (doCheck, getNewPastes, siteConfigs)
 import PasteWatch.Types
-import PasteWatch.Utils (sendEmail)
+import PasteWatch.Utils  (sendEmail)
 
 ---------------------------------------------------
 -- Low level functions
@@ -28,13 +28,13 @@ emailFile::URL -> String -> Worker ()
 emailFile url content = do
     conf <- ask
     liftIO $ do
-        putStrLn $ "Alerting on URL " ++ url
+        putStrLn $ "Alerting on URL " ++ show url
         sendEmail (sender conf)
                (recipients conf)
                (domain conf)
                (smtpServer conf)
                "Pastebin alert"
-               (url ++ "\n\n" ++ content)
+               (show url ++ "\n\n" ++ content)
 
 ---------------------------------------------------
 -- Functions to maintain our map of urls and time
@@ -92,7 +92,7 @@ checkone = forever $ do
     job  <- liftIO $ atomically $ readTChan (jobsQueue st)
     let url = paste job
     pause
-    liftIO $ putStrLn $ "Checking " ++ url
+    liftIO $ putStrLn $ "Checking " ++ show url
     result <- runEitherT $ tryIO $ doCheck (site job) url (checkFunction st)
     case result of
         Left _  -> return ()

@@ -41,15 +41,16 @@ testList = [TestCase $ assertBool "Test single line T1"
                         (checkContent' "stuff about My Company Inc being hacked"),
             TestCase $ assertEqual "get pastebin"
                         (Right "testing @example.com testing")
-                        (unsafeDoCheck Pastebin "http://pastebin.com/bLFduQqs"),
+                        (unsafeDoCheck Pastebin $ URL "http://pastebin.com/bLFduQqs"),
             TestCase $ assertEqual "get pastie"
                         (Right "testing @example.com testing\n")
-                        (unsafeDoCheck Pastie "http://pastie.org/5406980"),
+                        (unsafeDoCheck Pastie $ URL "http://pastie.org/5406980"),
             TestCase $ assertBool "get skidpaste"
-                        (skidpasteMatch $ unsafeDoCheck SkidPaste "http://skidpaste.org/3cOMCRpA"),
+                        (skidpasteMatch $ unsafeDoCheck SkidPaste $
+                            URL "http://skidpaste.org/3cOMCRpA"),
             TestCase $ assertEqual "get slexy"
                         (Right "testing @example.com testing\n")
-                        (unsafeDoCheck Slexy "http://slexy.org/view/s2Fv9q8J2H")
+                        (unsafeDoCheck Slexy $ URL "http://slexy.org/view/s2Fv9q8J2H")
            ]
 
 -- test the new paste functions don't return an empty list
