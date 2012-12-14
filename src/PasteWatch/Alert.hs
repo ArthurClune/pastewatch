@@ -5,11 +5,10 @@ module PasteWatch.Alert
      checkContent
    ) where
 
-import Control.Applicative
-import Data.Monoid (mconcat)
-import Data.Attoparsec.ByteString.Char8
+import           Control.Applicative
+import           Data.Monoid                        (mconcat)
+import           Data.Attoparsec.ByteString.Char8
 import qualified Data.ByteString.Char8 as S
-
 
 -- | Return True iff the given string includes our patterns
 checkContent::[S.ByteString] -> [S.ByteString] -> S.ByteString -> Bool

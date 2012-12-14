@@ -7,9 +7,8 @@ module PasteWatch.Utils
 import Data.IORef
 import Network.SMTP.Client
 import Network.Socket
-import System.Time (getClockTime, toCalendarTime)
+import System.Time         (getClockTime, toCalendarTime)
 
---import PasteWatch.Types (Domain, Email, Host, Control, SiteConfig, URL)
 import PasteWatch.Types hiding (recipients, sender, smtpServer)
 
 -- | Send an email with given subject and contents
@@ -37,13 +36,13 @@ sendEmail sender
                 Date nowCT
             ]
             content
-    addrs <- getAddrInfo Nothing (Just smtpServer) Nothing
+    addrs <- getAddrInfo Nothing (Just $ toString smtpServer) Nothing
     let SockAddrInet _ hostAddr = addrAddress (head addrs)
         sockAddr = SockAddrInet 25 hostAddr
     sentRef <- newIORef []
-    sendSMTP (Just sentRef) myDomain sockAddr [message]
+    sendSMTP (Just sentRef) (toString myDomain) sockAddr [message]
     return ()
   where
-    recipients'  = map (toName . (\x -> ("", x))) recipients
-    sender'      = [toName ("", sender)]
+    recipients'  = map ((toName . (\x -> ("", x))) . toString) recipients
+    sender'      = [toName ("", toString sender)]
     toName (n,e) = NameAddr (Just n) e

@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 -- | Code to deal with each specific type of site
 --
 -- Contains all the special case code that differs per site
@@ -8,13 +9,14 @@ module PasteWatch.Sites
         siteConfigs
     ) where
 
-import Control.Exception (onException)
+import           Control.Exception          (onException)
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Char8 as B (pack)
-import Data.Tree.NTree.TypeDefs
-import Network.HTTP
-import Text.HandsomeSoup ((!), css, parseHtml, fromUrl)
-import Text.XML.HXT.Core hiding (trace)
+import qualified Data.Text as T
+import           Data.Tree.NTree.TypeDefs
+import           Network.HTTP
+import           Text.HandsomeSoup          ((!), css, parseHtml, fromUrl)
+import           Text.XML.HXT.Core hiding   (trace)
 
 import PasteWatch.Types
 
@@ -58,21 +60,22 @@ getNewPastes::Site -> IO [URL]
 getNewPastes Pastebin = do
     doc   <- fromUrl "http://www.pastebin.com/trends"
     links <- runX $ doc >>> css "ul[class=right_menu] a" ! "href"
-    return $ map ("http://pastebin.com" ++ ) links
+    return $ map (URL . T.pack . ("http://pastebin.com" ++ )) links
 
 getNewPastes Pastie = do
     doc   <- fromUrl "http://www.pastie.org/pastes"
-    runX $ doc >>> css "div[class=pastePreview] a" ! "href"
+    links <- runX $ doc >>> css "div[class=pastePreview] a" ! "href"
+    return $ map (URL . T.pack) links
 
 getNewPastes SkidPaste = do
     doc   <- fromUrl "http://skidpaste.org/index.html"
     links <- runX $ doc >>> css "div[id=sidemenu] ul[class=submenu] a" ! "href"
-    return $ filter (/= "") links
+    return $ map (URL . T.pack) $ filter (/= "") links
 
 getNewPastes Slexy = do
     doc   <- fromUrl "http://slexy.org/recent"
     links <- runX $ doc >>> css "td a" ! "href"
-    return $ map ("http://slexy.org" ++) links
+    return $ map (URL . T.pack . ("http://slexy.org" ++)) links
 
 -- internal helper function
 doCheck'::URL
@@ -93,7 +96,7 @@ doCheck' url contentMatch cssfunc = do
 
 fetchURL::URL -> IO (Either ErrorCode (IOSArrow XmlTree (NTree XNode)))
 fetchURL url = do
-    let req = getRequest url
+    let req = getRequest (toString url)
     resp <- simpleHTTP req
     case resp of
         Left _  -> return $ Left FAILED

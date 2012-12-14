@@ -3,50 +3,72 @@
 module PasteWatch.Types
     (
         Control,
-        Domain,
-        Email,
+        Domain(..),
+        Email(..),
         ErrorCode(..),
-        Host,
+        Host(..),
         JobState(..),
         Task(..) ,
         Site(..),
         SiteConfig(..),
-        URL,
+        URL(..),
         UserConfig(..),
         Worker,
         WorkerState(..),
         execControl,
         runControl,
         execWorker,
-        runWorker
+        runWorker,
+        toString
     ) where
 
-import Control.Concurrent.STM (TChan)
-import Control.Monad.Reader
-import Control.Monad.State
-import Data.ByteString.Char8 as S
-import Data.HashMap.Strict as Map
-import Data.Time.Clock as Time
-import System.Random
+import           Control.Concurrent.STM         (TChan)
+import           Control.Monad.Reader
+import           Control.Monad.State
+import qualified Data.ByteString.Char8 as S
+import qualified Data.Configurator.Types as DCT
+import           Data.Hashable
+import qualified Data.HashMap.Strict as Map
+import qualified Data.Text as T
+import qualified Data.Time.Clock as Time
+import           System.Random
 
 --------------------------------------------------------------
 -- simple types
 --------------------------------------------------------------
 
--- | A domain domain (e.g. "example.com")
-type Domain = String
+class Value a where
+    toString :: a -> String
+instance Value T.Text where
+    toString = T.unpack
+
+-- | A domain (e.g. "example.com")
+newtype Domain = Domain T.Text deriving (Eq, Show, Value)
+instance DCT.Configured Domain where
+    convert (DCT.String v) = Just $ Domain v
+    convert _              = Nothing
 
 -- | Email address ("Real Name", "email address")
-type Email = String
+newtype Email = Email T.Text deriving (Eq, Show, Value)
+instance DCT.Configured Email where
+    convert (DCT.String v) = Just $ Email v
+    convert _              = Nothing
 
 -- | Custom errors when getting paste
 data ErrorCode = NO_MATCH | FAILED | RETRY deriving (Eq, Show)
 
 -- | A hostname (e.g. smtp.example.com)
-type Host = String
+newtype Host = Host T.Text deriving (Eq, Show, Value)
+instance DCT.Configured Host where
+    convert (DCT.String v) = Just $ Host v
+    convert _          = Nothing
 
 -- | Simple type to store URLs
-type URL = String
+newtype URL = URL T.Text deriving (Eq, Hashable, Show, Value)
+instance DCT.Configured URL where
+    convert (DCT.String v) = Just $ URL v
+    convert _              = Nothing
+
 
 --------------------------------------------------------------
 -- Config data structures
@@ -65,38 +87,36 @@ data SiteConfig = SiteConfig {
     -- | Time to pause main thread each loop (seconds)
     -- Adjust depending on the volume of pastes on the target site
     delayTime :: !Int,
-    -- time (in seconds) after which we remove URLs
+    -- | Time (in seconds) after which we remove URLs
     -- from the seen list for this site
     pruneTime :: !Time.NominalDiffTime
 } deriving (Show, Eq)
 
-
 -- | Type to hold user config
 data UserConfig = UserConfig {
-   -- | Strings to alert on (case sensitive) if seen in a paste
-  alertStrings   :: ![S.ByteString],
-  -- | Strings to alert on (case insensitive) if seen in a paste
-  alertStringsCI :: ![S.ByteString],
-   -- | domain that email comes from
-  domain         :: !Domain,
-  -- | Number of Haskell (lightweight) threads to use
-  -- for downloading. Total number of threads used
-  -- equals nthreads + number of sites + 1
-  -- N of these are mapped onto M OS threads where M is set
-  -- by the +RTS -N option (see README.md)
-  nthreads       :: !Int,
-  -- pauseMax
-  -- we wait for a random number between 0 and pauseMax seconds before
-  -- downloading the URL
-  -- Use this to stop sites blocking downloads due to too many requests in too short
-  -- a time period
-  pauseMax      :: !Int,
-  -- | Send alert emails to?
-  recipients     :: ![Email],
-  -- | Send alert emails as?
-  sender         :: !Email,
-  -- | SMTP server to use to send email via
-  smtpServer     :: !Host
+     -- | Strings to alert on (case sensitive) if seen in a paste
+    alertStrings   :: ![S.ByteString],
+    -- | Strings to alert on (case insensitive) if seen in a paste
+    alertStringsCI :: ![S.ByteString],
+     -- | Domain that email comes from
+    domain         :: !Domain,
+    -- | Number of Haskell (lightweight) threads to use
+    -- for downloading. Total number of threads used
+    -- equals nthreads + number of sites + 1
+    -- N of these are mapped onto M OS threads where M is set
+    -- by the +RTS -N option (see README.md)
+    nthreads       :: !Int,
+    -- | We wait for a random number between 0 and pauseMax seconds before
+    -- downloading the URL
+    -- Use this to stop sites blocking downloads due to too many requests in too short
+    -- a time period
+    pauseMax      :: !Int,
+    -- | Send alert emails to?
+    recipients     :: ![Email],
+    -- | Send alert emails as?
+    sender         :: !Email,
+    -- | SMTP server to use to send email via
+    smtpServer     :: !Host
 }
 
 --------------------------------------------------------------
@@ -128,29 +148,29 @@ execWorker s = runReaderT . (execStateT . runWorker) s
 -- | State for our channel: list of done URLs and
 -- config for the site we are doing
 data JobState = JobState {
-    -- STM queue for passing URLs around
-    linkQueue :: TChan Task,
-    -- per thread map of URLs seen for this site
-    linksSeen :: Map.HashMap URL Time.UTCTime
+    -- | STM queue for passing URLs around
+    linkQueue   :: TChan Task,
+    -- | P1er thread map of URLs seen for this site
+    linksSeen   :: Map.HashMap URL Time.UTCTime
 }
 
 data WorkerState = WorkerState {
-  -- our shared queue
+  -- | Shared queue
   jobsQueue     :: TChan Task,
-  -- the check function
-  -- this is static for now, but in time we want this to change, so put it in
-  -- State not Reader
+  -- | The check function
+  -- | This is static for now, but in time we want this to change, so put it in
+  -- | State not Reader
   checkFunction :: S.ByteString -> Bool,
-  -- random number generator for each thread
+  -- | Random number generator for each thread
   randGen       :: StdGen
 }
 
 -- | A Task is a URL to check
 data Task = Task {
-  -- Type of site
+  -- | Type of site
   site   :: !Site,
-  -- How many time have we checked this URL already?
+  -- | How many time have we checked this URL already?
   ntimes :: !Int,
-  -- URL of the paste to check
+  -- | URL of the paste to check
   paste  :: !URL
 } deriving (Eq, Show)

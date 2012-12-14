@@ -7,18 +7,18 @@ module PasteWatch.Config
     ) where
 
 import Control.Error
-import Control.Monad (ap, liftM)
+import Control.Monad            (ap, liftM)
 import Data.Configurator
 import Data.Configurator.Types
-import Safe (abort)
-import System.Environment (getArgs)
+import Safe                     (abort)
+import System.Environment       (getArgs)
 import System.Exit
 
 import PasteWatch.Types
 
 instance Configured a => Configured [a] where
     convert (List xs) = mapM convert xs
-    convert _         = Nothing
+    convert _             = Nothing
 
 -- quick and dirty command line args handling
 parseArgs::IO FilePath
@@ -35,13 +35,13 @@ parseConfig file = do
     Left _ -> do
         putStrLn "Error loading config file"
         exitFailure
-    Right c' -> do
-        UserConfig `liftM` (require c' "alertStrings")
-                      `ap` (require c' "alertStringsCI")
-                      `ap` (require c' "domain")
-                      `ap` (require c' "nthreads")
-                      `ap` (require c' "pauseMax")
-                      `ap` (require c' "recipients")
-                      `ap` (require c' "sender")
-                      `ap` (require c' "smtpServer")
+    Right c' ->
+        UserConfig `liftM` require c' "alertStrings"
+                      `ap` require c' "alertStringsCI"
+                      `ap` require c' "domain"
+                      `ap` require c' "nthreads"
+                      `ap` require c' "pauseMax"
+                      `ap` require c' "recipients"
+                      `ap` require c' "sender"
+                      `ap` require c' "smtpServer"
 
