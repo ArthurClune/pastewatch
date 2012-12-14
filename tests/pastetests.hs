@@ -56,8 +56,8 @@ testList = [TestCase $ assertBool "Test single line T1"
 -- test the new paste functions don't return an empty list
 testNewPastes =   map
                     (\s -> TestCase $ assertBool ""
-                                (null $ unsafePerformIO $ getNewPastes $ siteType s))
-                    siteConfigs
+                                (null $ unsafePerformIO $ getNewPastes s))
+                    [minBound..maxBound]
 
 main::IO ()
 main =

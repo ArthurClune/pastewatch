@@ -3,14 +3,16 @@
 module PasteWatch.Types
     (
         Control,
+        ControlState(..),
+        Counters(..),
         Domain(..),
         Email(..),
-        ErrorCode(..),
         Host(..),
-        JobState(..),
-        Task(..) ,
+        Task(..),
+        ResultCode(..),
         Site(..),
         SiteConfig(..),
+        SiteConfigs,
         URL(..),
         UserConfig(..),
         Worker,
@@ -56,14 +58,14 @@ instance DCT.Configured Email where
     convert (DCT.String v) = Just $ Email v
     convert _              = Nothing
 
--- | Custom errors when getting paste
-data ErrorCode = NO_MATCH | FAILED | RETRY deriving (Eq, Show)
+-- | Custom results when getting paste
+data ResultCode = SUCCESS | NO_MATCH | FAILED | RETRY deriving (Enum, Eq, Show)
 
 -- | A hostname (e.g. smtp.example.com)
 newtype Host = Host T.Text deriving (Eq, Show, Value)
 instance DCT.Configured Host where
     convert (DCT.String v) = Just $ Host v
-    convert _          = Nothing
+    convert _              = Nothing
 
 -- | Simple type to store URLs
 newtype URL = URL T.Text deriving (Eq, Hashable, Show, Value)
@@ -79,7 +81,10 @@ instance DCT.Configured URL where
 --
 -- doCheck and getnewPastes in PasteWatch.Sites must
 -- be implemented for every new site
-data Site = Pastebin | Pastie | SkidPaste | Slexy deriving (Show, Eq)
+data Site = Pastebin | Pastie | SkidPaste | Slexy deriving (Bounded, Enum, Eq, Show)
+
+instance Hashable Site where
+    hash = fromEnum
 
 -- | Per-site config
 data SiteConfig = SiteConfig {
@@ -92,6 +97,8 @@ data SiteConfig = SiteConfig {
     -- from the seen list for this site
     pruneTime :: !Time.NominalDiffTime
 } deriving (Show, Eq)
+
+type SiteConfigs = Map.HashMap Site SiteConfig
 
 -- | Type to hold user config
 data UserConfig = UserConfig {
@@ -127,10 +134,10 @@ data UserConfig = UserConfig {
 -- | Monad stack wrapping State and Reader
 -- This the monad that the control threads run in
 newtype Control a  = Control {
-      runControl :: StateT JobState (ReaderT SiteConfig IO) a
-    } deriving (Monad, MonadReader SiteConfig, MonadState JobState, MonadIO)
+      runControl :: StateT ControlState (ReaderT SiteConfig IO) a
+    } deriving (Monad, MonadReader SiteConfig, MonadState ControlState, MonadIO)
 
-execControl::Control a -> JobState -> SiteConfig -> IO JobState
+execControl::Control a -> ControlState -> SiteConfig -> IO ControlState
 execControl s = runReaderT . (execStateT . runControl) s
 
 -- | Monad stack wrapping State and Reader
@@ -146,21 +153,19 @@ execWorker s = runReaderT . (execStateT . runWorker) s
 -- Data to pass between worker and control threads
 --------------------------------------------------------------
 
--- | State for our channel: list of done URLs and
--- config for the site we are doing
-data JobState = JobState {
+-- | State for each site master thread
+data ControlState = ControlState {
     -- | STM queue for passing URLs around
     linkQueue   :: TChan Task,
     -- | P1er thread map of URLs seen for this site
     linksSeen   :: Map.HashMap URL Time.UTCTime,
     -- | Number of urls we're tested in total
-    urlsTested  :: Counter,
-    -- | Number of urls we've had to retry (each retry adds one to this counter)
-    urlsRetried :: Counter,
-    -- | Length of the cache of URLs seen
-    seenHashLen :: Gauge
+    seenHashLen :: Gauge,
+    -- | Channel for results from the workers
+    resultQueue :: TChan ResultCode
 }
 
+-- | State for the worker threads
 data WorkerState = WorkerState {
   -- | Shared queue
   jobsQueue     :: TChan Task,
@@ -172,12 +177,27 @@ data WorkerState = WorkerState {
   randGen       :: StdGen
 }
 
+-- | All the per-site EKG Counters
+data Counters = Counters {
+    -- | Total number of URLs successfully tested
+    tested  :: Counter,
+    -- | Total number of URLs that have matched an alert
+    matched :: Counter,
+    -- | Total number of retries. Multiple retries of the same
+    -- url count on each retry
+    retries :: Counter,
+    -- | Total number of failed URLs (404 errors etc)
+    failed  :: Counter
+}
+
 -- | A Task is a URL to check
 data Task = Task {
   -- | Type of site
-  site   :: !Site,
+  site    :: !Site,
   -- | How many time have we checked this URL already?
-  ntimes :: !Int,
+  ntimes  :: !Int,
+  -- | Queue to put result status in
+  rStatus :: TChan ResultCode,
   -- | URL of the paste to check
-  paste  :: !URL
-} deriving (Eq, Show)
+  paste   :: !URL
+} deriving (Eq)

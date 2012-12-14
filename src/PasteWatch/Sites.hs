@@ -5,55 +5,60 @@
 module PasteWatch.Sites
     (
         createCounters,
+        createGauges,
         doCheck,
         getNewPastes,
         siteConfigs
     ) where
 
 import           Control.Exception          (onException)
+import           Control.Monad              (sequence)
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Char8 as B (pack)
+import qualified Data.HashMap.Strict as Map
 import qualified Data.Text as T
 import           Data.Tree.NTree.TypeDefs
 import           Network.HTTP
-import           System.Remote.Counter      (Counter)
-import           System.Remote.Monitoring   (getCounter, Server)
+import           System.Remote.Gauge        (Gauge)
+import           System.Remote.Monitoring   (getCounter, getGauge, Server)
 import           Text.HandsomeSoup          ((!), css, parseHtml, fromUrl)
 import           Text.XML.HXT.Core hiding   (trace)
 
 import PasteWatch.Types
+import PasteWatch.Utils  (sq)
 
 -- | Config for our sites
-siteConfigs::[SiteConfig]
-siteConfigs = [
-  SiteConfig {
-    siteType  = Pastebin,
-    delayTime = 10,
-    pruneTime = 600
-  },
-  SiteConfig {
-    siteType  = Pastie,
-    delayTime = 33,      -- 30 sec + skew
-    pruneTime = 1200
-  },
-  SiteConfig {
-    siteType  = SkidPaste,
-    delayTime = 247,     -- 4 mins + skew
-    pruneTime = 7200
-  },
-  SiteConfig {
-    siteType  = Slexy,
-    delayTime = 251,     -- 4 mins + skew
-    pruneTime = 7200
-  }
- ]
-
-createCounters::Server -> IO Counter
-createCounters server = do
-    getCounter "testing" server
+siteConfigs::SiteConfigs
+siteConfigs =
+  Map.insert Pastebin SiteConfig {
+                siteType  = Pastebin,
+                delayTime = 10,
+                pruneTime = 600
+              }
+  $
+  Map.insert Pastie SiteConfig {
+                siteType  = Pastie,
+                delayTime = 33,      -- 30 sec + skew
+                pruneTime = 1200
+              }
+  $
+  Map.insert SkidPaste SiteConfig {
+                siteType  = SkidPaste,
+                delayTime = 247,     -- 4 mins + skew
+                pruneTime = 7200
+              }
+  $
+  Map.insert Slexy SiteConfig {
+                siteType  = Slexy,
+                delayTime = 251,     -- 4 mins + skew
+                pruneTime = 7200
+              }
+  $
+  Map.empty
 
 -- | Check contents of a URL against given check function
-doCheck::Site -> URL -> (S.ByteString->Bool) -> IO (Either ErrorCode String)
+-- Must be implemented for every new site
+doCheck::Site -> URL -> (S.ByteString->Bool) -> IO (Either ResultCode String)
 doCheck sitet url contentMatch =
     case sitet of
         Pastebin  -> doCheck' url contentMatch (css "textarea")
@@ -62,6 +67,7 @@ doCheck sitet url contentMatch =
         Slexy     -> doCheck' url contentMatch (css "div[class=text]")
 
 -- | Get all the new pastes from a given site
+-- Must be implemented for every new site
 getNewPastes::Site -> IO [URL]
 
 getNewPastes Pastebin = do
@@ -84,11 +90,15 @@ getNewPastes Slexy = do
     links <- runX $ doc >>> css "td a" ! "href"
     return $ map (URL . T.pack . ("http://slexy.org" ++)) links
 
+-----------------------------------------------------------
+-- Nothing below here needs changing when adding a new site
+-----------------------------------------------------------
+
 -- internal helper function
 doCheck'::URL
         -> (S.ByteString->Bool)
         -> IOSLA (XIOState ()) (NTree XNode) (NTree XNode)
-        -> IO (Either ErrorCode String)
+        -> IO (Either ResultCode String)
 doCheck' url contentMatch cssfunc = do
     resp <- onException (fetchURL url) (return FAILED)
     case resp of
@@ -101,7 +111,7 @@ doCheck' url contentMatch cssfunc = do
             then return $ Right (head content)
             else return $ Left NO_MATCH
 
-fetchURL::URL -> IO (Either ErrorCode (IOSArrow XmlTree (NTree XNode)))
+fetchURL::URL -> IO (Either ResultCode (IOSArrow XmlTree (NTree XNode)))
 fetchURL url = do
     let req = getRequest (toString url)
     resp <- simpleHTTP req
@@ -112,3 +122,22 @@ fetchURL url = do
             (4, 0, 8) -> return $ Left RETRY
             (5, _, _) -> return $ Left RETRY
             _         -> return $ Left FAILED
+
+
+-- | Generate the Counters for a given site
+createCounters::Server -> Site -> IO (Counters)
+createCounters srv sitet = do
+     [c1, c2, c3, c4] <- mapM counterf counterLabels
+     return $ Counters c1 c2 c3 c4
+  where
+    counterLabels = ["Tested", "Matched", "Retries", "Failed"]
+    counterf = (\x -> getCounter x srv) . T.pack . (prefix ++)
+    prefix = (sq . show) sitet ++ " "
+
+-- | Generate the Gauges for a given site
+createGauges::Server -> Site -> IO (Gauge)
+createGauges srv sitet = do
+     g1 <- getGauge label srv
+     return g1
+  where
+      label = T.pack $ (sq . show) sitet ++ "Hash Length"

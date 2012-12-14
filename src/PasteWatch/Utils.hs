@@ -1,7 +1,8 @@
 -- | Some misc utility functions
 module PasteWatch.Utils
     (
-      sendEmail
+      sendEmail,
+      sq
     ) where
 
 import Data.IORef
@@ -46,3 +47,11 @@ sendEmail sender
     recipients'  = map ((toName . (\x -> ("", x))) . toString) recipients
     sender'      = [toName ("", toString sender)]
     toName (n,e) = NameAddr (Just n) e
+
+-- | Remote outmost ""s from a string
+sq :: String -> String
+sq ('"':s)  | last s == '"'  = init s
+            | otherwise      = s
+sq ('\'':s) | last s == '\'' = init s
+            | otherwise      = s
+sq s                         = s
