@@ -18,7 +18,8 @@ module PasteWatch.Types
         execControl,
         runControl,
         execWorker,
-        runWorker
+        runWorker,
+        toString
     ) where
 
 import           Control.Concurrent.STM         (TChan)
@@ -38,28 +39,37 @@ import           System.Random
 -- simple types
 --------------------------------------------------------------
 
+class Value a where
+    toString :: a -> String
+instance Value T.Text where
+    toString = T.unpack
+
 -- | A domain (e.g. "example.com")
-newtype Domain = Domain T.Text deriving (Eq, Show)
+newtype Domain = Domain T.Text deriving (Eq, Show, Value)
 instance DCT.Configured Domain where
-    convert = DCT.convert
+    convert (DCT.String v) = Just $ Domain v
+    convert _              = Nothing
 
 -- | Email address ("Real Name", "email address")
-newtype Email = Email T.Text deriving (Eq, Show)
+newtype Email = Email T.Text deriving (Eq, Show, Value)
 instance DCT.Configured Email where
-    convert = DCT.convert
+    convert (DCT.String v) = Just $ Email v
+    convert _              = Nothing
 
 -- | Custom errors when getting paste
 data ErrorCode = NO_MATCH | FAILED | RETRY deriving (Eq, Show)
 
 -- | A hostname (e.g. smtp.example.com)
-newtype Host = Host T.Text deriving (Eq, Show)
+newtype Host = Host T.Text deriving (Eq, Show, Value)
 instance DCT.Configured Host where
-    convert = DCT.convert
+    convert (DCT.String v) = Just $ Host v
+    convert _          = Nothing
 
 -- | Simple type to store URLs
-newtype URL = URL T.Text deriving (Eq, Hashable, Show)
+newtype URL = URL T.Text deriving (Eq, Hashable, Show, Value)
 instance DCT.Configured URL where
-    convert = DCT.convert
+    convert (DCT.String v) = Just $ URL v
+    convert _              = Nothing
 
 --------------------------------------------------------------
 -- Config data structures

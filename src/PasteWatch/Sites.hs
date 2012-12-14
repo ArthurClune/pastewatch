@@ -103,7 +103,7 @@ doCheck' url contentMatch cssfunc = do
 
 fetchURL::URL -> IO (Either ErrorCode (IOSArrow XmlTree (NTree XNode)))
 fetchURL url = do
-    let req = getRequest (show url)
+    let req = getRequest (toString url)
     resp <- simpleHTTP req
     case resp of
         Left _  -> return $ Left FAILED

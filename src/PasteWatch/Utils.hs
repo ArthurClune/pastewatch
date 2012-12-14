@@ -36,13 +36,13 @@ sendEmail sender
                 Date nowCT
             ]
             content
-    addrs <- getAddrInfo Nothing (Just $ show smtpServer) Nothing
+    addrs <- getAddrInfo Nothing (Just $ toString smtpServer) Nothing
     let SockAddrInet _ hostAddr = addrAddress (head addrs)
         sockAddr = SockAddrInet 25 hostAddr
     sentRef <- newIORef []
-    sendSMTP (Just sentRef) (show myDomain) sockAddr [message]
+    sendSMTP (Just sentRef) (toString myDomain) sockAddr [message]
     return ()
   where
-    recipients'  = map ((toName . (\x -> ("", x))) . show) recipients
-    sender'      = [toName ("", show sender)]
+    recipients'  = map ((toName . (\x -> ("", x))) . toString) recipients
+    sender'      = [toName ("", toString sender)]
     toName (n,e) = NameAddr (Just n) e
