@@ -12,10 +12,12 @@ import qualified Data.HashMap.Strict as Map
 import           Data.List (unfoldr)
 import qualified Data.Time.Clock as Time
 import           System.Random
+import           System.Remote.Counter (inc)
+import           System.Remote.Monitoring (forkServer, getCounter)
 
 import PasteWatch.Alert  (checkContent)
 import PasteWatch.Config (parseArgs, parseConfig)
-import PasteWatch.Sites  (doCheck, getNewPastes, siteConfigs)
+import PasteWatch.Sites  (createCounters, doCheck, getNewPastes, siteConfigs)
 import PasteWatch.Types
 import PasteWatch.Utils  (sendEmail)
 
@@ -168,5 +170,5 @@ main = do
     spawnWorkerThread jobs conf f seed = forkIO
             (void $ execWorker checkone (WorkerState jobs f (mkStdGen seed)) conf)
     spawnControlThread jobs sc = forkIO
-            (void $ execControl controlThread (JobState jobs Map.empty) sc)
+            (void $ execControl controlThread (JobState jobs Map.empty undefined undefined undefined) sc)
     randomlist n = take n . unfoldr (Just . random)

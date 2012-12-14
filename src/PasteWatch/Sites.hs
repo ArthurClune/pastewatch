@@ -4,6 +4,7 @@
 -- Contains all the special case code that differs per site
 module PasteWatch.Sites
     (
+        createCounters,
         doCheck,
         getNewPastes,
         siteConfigs
@@ -15,6 +16,8 @@ import qualified Data.ByteString.Char8 as B (pack)
 import qualified Data.Text as T
 import           Data.Tree.NTree.TypeDefs
 import           Network.HTTP
+import           System.Remote.Counter      (Counter)
+import           System.Remote.Monitoring   (getCounter, Server)
 import           Text.HandsomeSoup          ((!), css, parseHtml, fromUrl)
 import           Text.XML.HXT.Core hiding   (trace)
 
@@ -44,6 +47,10 @@ siteConfigs = [
     pruneTime = 7200
   }
  ]
+
+createCounters::Server -> IO Counter
+createCounters server = do
+    getCounter "testing" server
 
 -- | Check contents of a URL against given check function
 doCheck::Site -> URL -> (S.ByteString->Bool) -> IO (Either ErrorCode String)

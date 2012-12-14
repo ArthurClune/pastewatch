@@ -142,7 +142,13 @@ data JobState = JobState {
     -- | STM queue for passing URLs around
     linkQueue   :: TChan Task,
     -- | P1er thread map of URLs seen for this site
-    linksSeen   :: Map.HashMap URL Time.UTCTime
+    linksSeen   :: Map.HashMap URL Time.UTCTime,
+    -- | Number of urls we're tested in total
+    urlsTested  :: Counter,
+    -- | Number of urls we've had to retry (each retry adds one to this counter)
+    urlsRetried :: Counter,
+    -- | Length of the cache of URLs seen
+    seenHashLen :: Gauge
 }
 
 data WorkerState = WorkerState {
