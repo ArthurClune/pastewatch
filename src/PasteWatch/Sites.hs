@@ -12,7 +12,6 @@ module PasteWatch.Sites
     ) where
 
 import           Control.Exception          (onException)
-import           Control.Monad              (sequence)
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Char8 as B (pack)
 import qualified Data.HashMap.Strict as Map
