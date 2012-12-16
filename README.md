@@ -17,9 +17,18 @@ Copy sample.config to my.config (or whatever) and edit the values in there suita
 
 Run with
 ```
-$ pastewatch +RTS -N4 -k100m -RTS my.config
+$ pastewatch +RTS -N4 -k100m -T -RTS my.config
 ```
 where the number -N4 = number of cores you want the program to use.
+
+Monitoring is available on http://localhost:8000
+
+This is currently not authenticated.
+
+Extras
+------
+
+A Debian/Ubuntu init script is included in extras/
 
 Tests
 -----
@@ -29,10 +38,5 @@ A simple test runner is included (tests/pastetests.hs)
 $ cabal test
 ```
 to run.
-
-Bugs
-----
-
-1) It currently uses Attoparsec.ByteString. It should use Attoparsec.Text instead for unicode goodness
 
 
