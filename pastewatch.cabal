@@ -28,7 +28,7 @@ Library
     hs-source-dirs:   src
     default-language: Haskell98
     Build-depends:    attoparsec, base, bytestring, configurator, ekg, errors,
-                      HandsomeSoup, hashable, HTTP, hxt, mtl, network, old-time,
+                      HandsomeSoup, hashable<1.2.0.0, HTTP, hxt, mtl, network, old-time,
                       random, safe, SMTPClient, stm, text, time, transformers,
                       unordered-containers
     ghc-options:      -Wall -O2
