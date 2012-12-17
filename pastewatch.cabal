@@ -3,8 +3,8 @@ category:            web
 version:             0.1.0.1
 license:             GPL-3
 license-file:        license.txt
-description:         Code to watch paste site and alert on pastes of interest
-synopsis:            Code to watch paste site and alert on pastes of interest
+description:         Code to watch paste sites and alert on pastes of interest
+synopsis:            Code to watch paste sites and alert on pastes of interest
 author:              Arthur Clune
 maintainer:          arthur@clune.org
 build-type:          Simple

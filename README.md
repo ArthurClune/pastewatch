@@ -23,12 +23,14 @@ where the number -N4 = number of cores you want the program to use.
 
 Monitoring is available on http://localhost:8000
 
-This is currently not authenticated.
+This is currently not authenticated - set firewall rules suitably!
 
 Extras
 ------
 
 A Debian/Ubuntu init script is included in extras/
+
+A compiled tarball for Ubuntu 12.04 is available from http://clune.org/pastewatch.tgz. This will install to /opt/pastewatch and can be used with the init script in extras/
 
 Tests
 -----
