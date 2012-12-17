@@ -7,10 +7,10 @@ Code to watch pastesites and alert on specific strings
 To use install the Haskell Platform (http://www.haskell.org/platform/, version 2012.2.0.0 or later)
 
 Edit src/PasteWatch/Config.hs to taste.
-
+```
 $ cabal configure --enable-tests
 $ cabal install
-
+```
 You'll get a binary pastewatch in ~/.cabal/bin (Linux) or ~/Library/Haskell/bin (OS X)
 
 Copy sample.config to my.config (or whatever) and edit the values in there suitably.
