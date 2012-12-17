@@ -200,4 +200,4 @@ data Task = Task {
   rStatus :: TChan ResultCode,
   -- | URL of the paste to check
   paste   :: !URL
-} deriving (Eq)
+}
