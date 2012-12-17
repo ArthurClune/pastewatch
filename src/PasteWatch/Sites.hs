@@ -52,7 +52,6 @@ siteConfigs =
                 delayTime = 251,     -- 4 mins + skew
                 pruneTime = 7200
               }
-  $
   Map.empty
 
 -- | Check contents of a URL against given check function
@@ -112,8 +111,7 @@ doCheck' url contentMatch cssfunc = do
 
 fetchURL::URL -> IO (Either ResultCode (IOSArrow XmlTree (NTree XNode)))
 fetchURL url = do
-    let req = getRequest (toString url)
-    resp <- simpleHTTP req
+    resp <- simpleHTTP $ getRequest (toString url)
     case resp of
         Left _  -> return $ Left FAILED
         Right r -> case rspCode r of
@@ -124,19 +122,17 @@ fetchURL url = do
 
 
 -- | Generate the Counters for a given site
-createCounters::Server -> Site -> IO (Counters)
+createCounters::Server -> Site -> IO Counters
 createCounters srv sitet = do
      [c1, c2, c3, c4] <- mapM counterf counterLabels
      return $ Counters c1 c2 c3 c4
   where
     counterLabels = ["Tested", "Matched", "Retries", "Failed"]
-    counterf = (\x -> getCounter x srv) . T.pack . (prefix ++)
+    counterf = (`getCounter` srv) . T.pack . (prefix ++)
     prefix = (sq . show) sitet ++ " "
 
 -- | Generate the Gauges for a given site
-createGauges::Server -> Site -> IO (Gauge)
-createGauges srv sitet = do
-     g1 <- getGauge label srv
-     return g1
+createGauges::Server -> Site -> IO Gauge
+createGauges srv sitet = getGauge label srv
   where
       label = T.pack $ (sq . show) sitet ++ "Hash Length"

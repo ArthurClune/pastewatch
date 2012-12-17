@@ -60,7 +60,7 @@ insertURL l = do
 pruneURLs::Control ()
 pruneURLs = do
     now <- liftIO Time.getCurrentTime
-    sc <- ask
+    sc  <- ask
     let filterf x = Time.diffUTCTime now x < pTime
         pTime = pruneTime sc
       in
@@ -89,7 +89,7 @@ notSeenURL url =  do
 pause::Worker()
 pause = do
     conf <- ask
-    st <- get
+    st   <- get
     let (delayt, gen') = randomR (10000, pauseMax conf * 1000000) (randGen st)
     liftIO $ threadDelay delayt
     put st { randGen  = gen' }
@@ -100,8 +100,8 @@ pause = do
 -- random time before starting
 checkone::Worker ()
 checkone = forever $ do
-    st <- get
-    job  <- liftIO $ atomically $ readTChan (jobsQueue st)
+    st  <- get
+    job <- liftIO $ atomically $ readTChan (jobsQueue st)
     let rq = rStatus job
     let url = paste job
     pause
@@ -174,14 +174,14 @@ controlThread = forever $ do
 counterThread::TChan ResultCode -> Counters -> IO ()
 counterThread chan (Counters {tested, matched, retries, failed}) =
     forever $ do
-    result <- atomically $ readTChan chan
-    case result of
-        SUCCESS  -> do
-            SRC.inc tested
-            SRC.inc matched
-        RETRY    -> SRC.inc retries
-        NO_MATCH -> SRC.inc tested
-        FAILED   -> SRC.inc failed
+        result <- atomically $ readTChan chan
+        case result of
+            SUCCESS  -> do
+                SRC.inc tested
+                SRC.inc matched
+            RETRY    -> SRC.inc retries
+            NO_MATCH -> SRC.inc tested
+            FAILED   -> SRC.inc failed
 
 -- | spawn the control thread for a given site
 spawnControlThread::Server -> TChan Task -> Site -> IO ThreadId
@@ -211,11 +211,11 @@ spawnWorkerThread jobs conf checkf seed = forkIO
 
 main :: IO ()
 main = do
-    file <- parseArgs
+    file   <- parseArgs
     config <- parseConfig file
-    jobs <- newTChanIO
-    seed <- newStdGen
-    ekg <- forkServer "localhost" 8000
+    jobs   <- newTChanIO
+    seed   <- newStdGen
+    ekg    <- forkServer "localhost" 8000
     let checkf = checkContent (alertStrings config) (alertStringsCI config)
     let seeds = randomlist (nthreads config) seed
     mapM_ (spawnWorkerThread jobs config checkf) seeds
