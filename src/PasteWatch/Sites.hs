@@ -11,6 +11,7 @@ module PasteWatch.Sites
         siteConfigs
     ) where
 
+import           Control.DeepSeq            ( ($!!) )
 import           Control.Exception          (onException)
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Char8 as B (pack)
@@ -71,22 +72,22 @@ getNewPastes::Site -> IO [URL]
 getNewPastes Pastebin = do
     doc   <- fromUrl "http://www.pastebin.com/trends"
     links <- runX $ doc >>> css "ul[class=right_menu] a" ! "href"
-    return $ map (URL . T.pack . ("http://pastebin.com" ++ )) links
+    return $!! map (URL . T.pack . ("http://pastebin.com" ++ )) links
 
 getNewPastes Pastie = do
     doc   <- fromUrl "http://www.pastie.org/pastes"
     links <- runX $ doc >>> css "div[class=pastePreview] a" ! "href"
-    return $ map (URL . T.pack) links
+    return $!! map (URL . T.pack) links
 
 getNewPastes SkidPaste = do
     doc   <- fromUrl "http://skidpaste.org/index.html"
     links <- runX $ doc >>> css "div[id=sidemenu] ul[class=submenu] a" ! "href"
-    return $ map (URL . T.pack) $ filter (/= "") links
+    return $!! map (URL . T.pack) $ filter (/= "") links
 
 getNewPastes Slexy = do
     doc   <- fromUrl "http://slexy.org/recent"
     links <- runX $ doc >>> css "td a" ! "href"
-    return $ map (URL . T.pack . ("http://slexy.org" ++)) links
+    return $!! map (URL . T.pack . ("http://slexy.org" ++)) links
 
 -----------------------------------------------------------
 -- Nothing below here needs changing when adding a new site
@@ -100,14 +101,14 @@ doCheck'::URL
 doCheck' url contentMatch cssfunc = do
     resp <- onException (fetchURL url) (return FAILED)
     case resp of
-        Left a -> return $ Left a
+        Left a -> return $!! Left a
         Right doc -> extractContent doc
   where
     extractContent doc = do
         content <- runX . xshow $ doc >>> cssfunc >>> deep isText
         if contentMatch (B.pack $ head content)
-            then return $ Right (head content)
-            else return $ Left NO_MATCH
+            then return $!! Right (head content)
+            else return $! Left NO_MATCH
 
 fetchURL::URL -> IO (Either ResultCode (IOSArrow XmlTree (NTree XNode)))
 fetchURL url = do

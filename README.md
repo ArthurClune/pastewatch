@@ -17,7 +17,7 @@ Copy sample.config to my.config (or whatever) and edit the values in there suita
 
 Run with
 ```
-$ pastewatch +RTS -N4 -k100m -T -RTS my.config
+$ pastewatch +RTS -N4 -T -RTS my.config
 ```
 where the number -N4 = number of cores you want the program to use.
 

@@ -5,6 +5,7 @@
 
 import           Control.Concurrent         (forkIO, threadDelay, ThreadId)
 import           Control.Concurrent.STM
+import           Control.DeepSeq            ( ($!!) )
 import           Control.Error
 import           Control.Monad.Reader
 import           Control.Monad.State
@@ -119,9 +120,7 @@ checkone = forever $ do
                 liftIO . atomically $ writeTChan rq SUCCESS
                 emailFile url content
   where
-    writeResult rq code = do
-        liftIO . atomically $ writeTChan rq code
-        return ()
+    writeResult rq code = liftIO . atomically $ writeTChan rq code
 
 -- | Put task back on a queue for later
 -- unless we've already seen it 5 times
@@ -192,7 +191,7 @@ spawnControlThread ekg jobs sitet = do
     _ <- forkIO $ counterThread rQueue ctrs
     forkIO
         (void $ execControl controlThread (ControlState jobs Map.empty gauge rQueue)
-            (fromJust $ Map.lookup sitet siteConfigs))
+            (fromJust $!! Map.lookup sitet siteConfigs))
 
 -- | Spawn set of worker threads
 spawnWorkerThread::TChan Task
@@ -200,7 +199,8 @@ spawnWorkerThread::TChan Task
                 -> (S.ByteString -> Bool)
                 -> Int
                 -> IO ThreadId
-spawnWorkerThread jobs conf checkf seed = forkIO
+spawnWorkerThread jobs conf checkf seed =
+    forkIO
         (void $ execWorker checkone (WorkerState jobs checkf (mkStdGen seed)) conf)
 
 ---------------------------------------------------

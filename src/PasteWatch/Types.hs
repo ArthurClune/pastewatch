@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DeriveGeneric, GeneralizedNewtypeDeriving #-}
 -- | Core types
 module PasteWatch.Types
     (
@@ -25,6 +25,8 @@ module PasteWatch.Types
     ) where
 
 import           Control.Concurrent.STM         (TChan)
+import           Control.DeepSeq
+import           Control.DeepSeq.Generics       (genericRnf)
 import           Control.Monad.Reader
 import           Control.Monad.State
 import qualified Data.ByteString.Char8 as S
@@ -33,6 +35,7 @@ import           Data.Hashable
 import qualified Data.HashMap.Strict as Map
 import qualified Data.Text as T
 import qualified Data.Time.Clock as Time
+import           GHC.Generics
 import           System.Remote.Counter          (Counter)
 import           System.Remote.Gauge            (Gauge)
 import           System.Random
@@ -43,35 +46,50 @@ import           System.Random
 
 class Value a where
     toString :: a -> String
+
 instance Value T.Text where
     toString = T.unpack
 
 -- | A domain (e.g. "example.com")
-newtype Domain = Domain T.Text deriving (Eq, Show, Value)
+newtype Domain = Domain T.Text deriving (Eq, Generic, Show, Value)
+
 instance DCT.Configured Domain where
     convert (DCT.String v) = Just $ Domain v
     convert _              = Nothing
 
+instance NFData Domain where rnf = genericRnf
+
 -- | Email address ("Real Name", "email address")
-newtype Email = Email T.Text deriving (Eq, Show, Value)
+newtype Email = Email T.Text deriving (Eq, Generic, Show, Value)
+
 instance DCT.Configured Email where
     convert (DCT.String v) = Just $ Email v
     convert _              = Nothing
 
+instance NFData Email where rnf = genericRnf
+
 -- | Custom results when getting paste
-data ResultCode = SUCCESS | NO_MATCH | FAILED | RETRY deriving (Enum, Eq, Show)
+data ResultCode = SUCCESS | NO_MATCH | FAILED | RETRY deriving (Enum, Eq, Generic, Show)
+
+instance NFData ResultCode where rnf = genericRnf
 
 -- | A hostname (e.g. smtp.example.com)
-newtype Host = Host T.Text deriving (Eq, Show, Value)
+newtype Host = Host T.Text deriving (Eq, Generic, Show, Value)
+
 instance DCT.Configured Host where
     convert (DCT.String v) = Just $ Host v
     convert _              = Nothing
 
+instance NFData Host where rnf = genericRnf
+
 -- | Simple type to store URLs
-newtype URL = URL T.Text deriving (Eq, Hashable, Show, Value)
+newtype URL = URL T.Text deriving (Eq, Generic, Hashable, Show, Value)
+
 instance DCT.Configured URL where
     convert (DCT.String v) = Just $ URL v
     convert _              = Nothing
+
+instance NFData URL where rnf = genericRnf
 
 --------------------------------------------------------------
 -- Config data structures
@@ -81,10 +99,12 @@ instance DCT.Configured URL where
 --
 -- doCheck and getnewPastes in PasteWatch.Sites must
 -- be implemented for every new site
-data Site = Pastebin | Pastie | SkidPaste | Slexy deriving (Bounded, Enum, Eq, Show)
+data Site = Pastebin | Pastie | SkidPaste | Slexy deriving (Bounded, Enum, Eq, Generic, Show)
 
 instance Hashable Site where
     hash = fromEnum
+
+instance NFData Site where rnf = genericRnf
 
 -- | Per-site config
 data SiteConfig = SiteConfig {
@@ -96,7 +116,9 @@ data SiteConfig = SiteConfig {
     -- | Time (in seconds) after which we remove URLs
     -- from the seen list for this site
     pruneTime :: !Time.NominalDiffTime
-} deriving (Show, Eq)
+} deriving (Eq, Generic, Show)
+
+instance NFData SiteConfig where rnf = genericRnf
 
 type SiteConfigs = Map.HashMap Site SiteConfig
 
@@ -125,7 +147,7 @@ data UserConfig = UserConfig {
     sender         :: !Email,
     -- | SMTP server to use to send email via
     smtpServer     :: !Host
-}
+} deriving (Generic)
 
 --------------------------------------------------------------
 -- Monad transformer stacks
@@ -180,14 +202,14 @@ data WorkerState = WorkerState {
 -- | All the per-site EKG Counters
 data Counters = Counters {
     -- | Total number of URLs successfully tested
-    tested  :: Counter,
+    tested  :: !Counter,
     -- | Total number of URLs that have matched an alert
-    matched :: Counter,
+    matched :: !Counter,
     -- | Total number of retries. Multiple retries of the same
     -- url count on each retry
-    retries :: Counter,
+    retries :: !Counter,
     -- | Total number of failed URLs (404 errors etc)
-    failed  :: Counter
+    failed  :: !Counter
 }
 
 -- | A Task is a URL to check
