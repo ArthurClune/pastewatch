@@ -147,7 +147,7 @@ data UserConfig = UserConfig {
     sender         :: !Email,
     -- | SMTP server to use to send email via
     smtpServer     :: !Host
-} deriving (Generic)
+}
 
 --------------------------------------------------------------
 -- Monad transformer stacks
