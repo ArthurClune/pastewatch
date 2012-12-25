@@ -92,8 +92,8 @@ pause = do
     conf <- ask
     st   <- get
     let (delayt, gen') = randomR (10000, pauseMax conf * 1000000) (randGen st)
-    liftIO $ threadDelay delayt
     put st { randGen  = gen' }
+    liftIO $ threadDelay delayt
     return ()
 
 -- | Check one url, resheduling on failure if required
@@ -154,6 +154,8 @@ sendJobs sitet links = do
 
 -- | Loop forever, pulling the new pastes for a give site and
 -- putting into the queue for other threads to pick up
+-- Some sites firewall us after too many requests, so if we get an error,
+-- wait ~30 minutes then try again
 controlThread::Control ()
 controlThread = forever $ do
     sc <- ask
@@ -166,8 +168,9 @@ controlThread = forever $ do
     getURLs sitet = do
         urls <- runEitherT $ tryIO $ getNewPastes sitet
         case urls of
-            Left _  -> return ()
+            Left _  -> liftIO $ threadDelay thirtyMins
             Right u -> filterM notSeenURL u >>= sendJobs sitet
+    thirtyMins = 31 * 61 * 1000000 -- ish :)
 
 -- | Update the counters for this site
 counterThread::TChan ResultCode -> Counters -> IO ()
@@ -208,7 +211,6 @@ spawnWorkerThread jobs conf checkf seed =
 --
 -- After starting all sub-threads, this thread just spins
 ---------------------------------------------------
-
 main :: IO ()
 main = do
     file   <- parseArgs
