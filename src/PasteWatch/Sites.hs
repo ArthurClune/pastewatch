@@ -32,13 +32,13 @@ siteConfigs::SiteConfigs
 siteConfigs =
   Map.insert Pastebin SiteConfig {
                 siteType  = Pastebin,
-                delayTime = 10,
+                delayTime = 16,
                 pruneTime = 600
               }
   $
   Map.insert Pastie SiteConfig {
                 siteType  = Pastie,
-                delayTime = 33,      -- 30 sec + skew
+                delayTime = 41,
                 pruneTime = 1200
               }
   $
