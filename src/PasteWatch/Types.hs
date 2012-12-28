@@ -99,7 +99,8 @@ instance NFData URL where rnf = genericRnf
 --
 -- doCheck and getnewPastes in PasteWatch.Sites must
 -- be implemented for every new site
-data Site = Pastebin | Pastie | SkidPaste | Slexy deriving (Bounded, Enum, Eq, Generic, Show)
+data Site = Pastebin | Pastie | SkidPaste | Slexy | Snipt
+                deriving (Bounded, Enum, Eq, Generic, Show)
 
 instance Hashable Site where
     hash = fromEnum

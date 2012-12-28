@@ -50,7 +50,10 @@ testList = [TestCase $ assertBool "Test single line T1"
                             URL "http://skidpaste.org/3cOMCRpA"),
             TestCase $ assertEqual "get slexy"
                         (Right "testing @example.com testing\n")
-                        (unsafeDoCheck Slexy $ URL "http://slexy.org/view/s2Fv9q8J2H")
+                        (unsafeDoCheck Slexy $ URL "http://slexy.org/view/s2Fv9q8J2H"),
+            TestCase $ assertEqual "get snipt"
+                        (Right "testing @example.com testing")
+                        (unsafeDoCheck Snipt $ URL "http://snipt.org/zkfe8/plaintext")
            ]
 
 -- test the new paste functions don't return an empty list

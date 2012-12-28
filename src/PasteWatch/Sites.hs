@@ -53,6 +53,12 @@ siteConfigs =
                 delayTime = 251,     -- 4 mins + skew
                 pruneTime = 7200
               }
+  $
+  Map.insert Snipt SiteConfig {
+                siteType  = Snipt,
+                delayTime = 254,
+                pruneTime = 7200
+  }
   Map.empty
 
 -- | Check contents of a URL against given check function
@@ -62,6 +68,7 @@ doCheck Pastebin  = doCheck' (css "textarea")
 doCheck Pastie    = doCheck' (css "pre[class=textmate-source]")
 doCheck SkidPaste = doCheck' (css "div[class=content]")
 doCheck Slexy     = doCheck' (css "div[class=text]")
+doCheck Snipt     = doCheck' (css "textarea")
 
 -- | Get all the new pastes from a given site
 -- Must be implemented for every new site
@@ -86,6 +93,11 @@ getNewPastes Slexy = do
     doc   <- fromUrl "http://slexy.org/recent"
     links <- runX $ doc >>> css "td a" ! "href"
     return $!! map (URL . T.pack . ("http://slexy.org" ++)) links
+
+getNewPastes Snipt = do
+    doc   <- fromUrl "http://snipt.org/code/recent"
+    links <- runX $ doc >>> css "div[class=grid-block-container] a" ! "href"
+    return $!! map (URL. T.pack . (++ "/plaintext")) links
 
 -----------------------------------------------------------
 -- Nothing below here needs changing when adding a new site
