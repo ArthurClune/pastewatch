@@ -29,37 +29,14 @@ import PasteWatch.Utils  (sq)
 
 -- | Config for our sites
 siteConfigs::SiteConfigs
-siteConfigs =
-  Map.insert Pastebin SiteConfig {
-                siteType  = Pastebin,
-                delayTime = 16,
-                pruneTime = 600
-              }
-  $
-  Map.insert Pastie SiteConfig {
-                siteType  = Pastie,
-                delayTime = 41,
-                pruneTime = 1200
-              }
-  $
-  Map.insert SkidPaste SiteConfig {
-                siteType  = SkidPaste,
-                delayTime = 247,     -- 4 mins + skew
-                pruneTime = 7200
-              }
-  $
-  Map.insert Slexy SiteConfig {
-                siteType  = Slexy,
-                delayTime = 251,     -- 4 mins + skew
-                pruneTime = 7200
-              }
-  $
-  Map.insert Snipt SiteConfig {
-                siteType  = Snipt,
-                delayTime = 254,
-                pruneTime = 7200
-  }
-  Map.empty
+siteConfigs = Map.fromList [
+  -- (Site, SiteConfig siteType delayTime pruneTime)
+  (Pastebin,  SiteConfig Pastebin   16  600),
+  (Pastie,    SiteConfig Pastie     41 1200),
+  (SkidPaste, SiteConfig SkidPaste 247 7200),
+  (Slexy,     SiteConfig Slexy     251 7200),
+  (Snipt,     SiteConfig Snipt     254 7200)
+  ]
 
 -- | Check contents of a URL against given check function
 -- Must be implemented for every new site
