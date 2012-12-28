@@ -30,12 +30,12 @@ import PasteWatch.Utils  (sq)
 -- | Config for our sites
 siteConfigs::SiteConfigs
 siteConfigs = Map.fromList [
-  -- (Site, SiteConfig siteType delayTime pruneTime)
-  (Pastebin,  SiteConfig Pastebin   16  600),
-  (Pastie,    SiteConfig Pastie     41 1200),
-  (SkidPaste, SiteConfig SkidPaste 247 7200),
-  (Slexy,     SiteConfig Slexy     251 7200),
-  (Snipt,     SiteConfig Snipt     254 7200)
+  -- (Site, SiteConfig siteType delayTime errorTime pruneTime)
+  (Pastebin,  SiteConfig  16 1803  600),
+  (Pastie,    SiteConfig  41 1803 1200),
+  (SkidPaste, SiteConfig 247 1803 7200),
+  (Slexy,     SiteConfig 251 1803 7200),
+  (Snipt,     SiteConfig 254 1803 7200)
   ]
 
 -- | Check contents of a URL against given check function

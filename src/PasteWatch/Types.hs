@@ -109,11 +109,11 @@ instance NFData Site where rnf = genericRnf
 
 -- | Per-site config
 data SiteConfig = SiteConfig {
-    -- Type of site
-    siteType  :: !Site,
     -- | Time to pause main thread each loop (seconds)
     -- Adjust depending on the volume of pastes on the target site
     delayTime :: !Int,
+    -- | Time (in seconds) to wait after a http error (e.g. network timeout)
+    errorTime :: !Int,
     -- | Time (in seconds) after which we remove URLs
     -- from the seen list for this site
     pruneTime :: !Time.NominalDiffTime

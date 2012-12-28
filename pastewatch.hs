@@ -156,21 +156,19 @@ sendJobs sitet links = do
 -- putting into the queue for other threads to pick up
 -- Some sites firewall us after too many requests, so if we get an error,
 -- wait ~30 minutes then try again
-controlThread::Control ()
-controlThread = forever $ do
-    sc <- ask
-    let sitet = siteType sc
-    let dtime = delayTime sc * 1000000
-    getURLs sitet
-    liftIO $ threadDelay dtime
+controlThread::Site -> Control ()
+controlThread sitet = forever $ do
+    dtime <- asks delayTime
+    getURLs
+    liftIO $ threadDelay (dtime * 1000000)
     pruneURLs
   where
-    getURLs sitet = do
+    getURLs = do
+        etime <- asks errorTime
         urls <- runEitherT $ tryIO $ getNewPastes sitet
         case urls of
-            Left _  -> liftIO $ threadDelay thirtyMins
+            Left _  -> liftIO $ threadDelay (etime * 1000000)
             Right u -> filterM notSeenURL u >>= sendJobs sitet
-    thirtyMins = 31 * 61 * 1000000 -- ish :)
 
 -- | Update the counters for this site
 counterThread::TChan ResultCode -> Counters -> IO ()
@@ -193,7 +191,7 @@ spawnControlThread ekg jobs sitet = do
     rQueue <- newTChanIO
     _ <- forkIO $ counterThread rQueue ctrs
     forkIO
-        (void $ execControl controlThread (ControlState jobs Map.empty gauge rQueue)
+        (void $ execControl (controlThread sitet) (ControlState jobs Map.empty gauge rQueue)
             (fromJust $!! Map.lookup sitet siteConfigs))
 
 -- | Spawn set of worker threads
