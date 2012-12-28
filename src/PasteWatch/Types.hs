@@ -142,11 +142,11 @@ data UserConfig = UserConfig {
     -- a time period
     pauseMax      :: !Int,
     -- | Send alert emails to?
-    recipients     :: ![Email],
+    recipients    :: ![Email],
     -- | Send alert emails as?
-    sender         :: !Email,
+    sender        :: !Email,
     -- | SMTP server to use to send email via
-    smtpServer     :: !Host
+    smtpServer    :: !Host
 }
 
 --------------------------------------------------------------
