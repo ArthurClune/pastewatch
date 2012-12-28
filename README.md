@@ -41,4 +41,20 @@ $ cabal test
 ```
 to run.
 
+Sites Covered
+-------------
+
+Currently pastebin.com, pastie.org, skidpaste.org, slexy.org and snipt.org
+
+Adding a new site
+-----------------
+
+Add the new site to "Sites" type in Types.hs
+
+In Sites.hs, you must
+
+* Implement two functions for each new site: one that gets the list of new/recent sites (getNewPastes) and one that give a URL for a paste runs the check function (doCheck)
+* Add some values for the various timeouts in siteConfigs for your new site.
+
+
 
