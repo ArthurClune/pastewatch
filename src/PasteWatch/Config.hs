@@ -6,8 +6,8 @@ module PasteWatch.Config
       parseConfig
     ) where
 
+import Control.Applicative      ( (<$>), (<*>) )
 import Control.Error
-import Control.Monad            (ap, liftM)
 import Data.Configurator
 import Data.Configurator.Types
 import Safe                     (abort)
@@ -36,12 +36,12 @@ parseConfig file = do
         putStrLn "Error loading config file"
         exitFailure
     Right c' ->
-        UserConfig `liftM` require c' "alertStrings"
-                      `ap` require c' "alertStringsCI"
-                      `ap` require c' "domain"
-                      `ap` require c' "nthreads"
-                      `ap` require c' "pauseMax"
-                      `ap` require c' "recipients"
-                      `ap` require c' "sender"
-                      `ap` require c' "smtpServer"
+        UserConfig <$> require c' "alertStrings"
+                     <*> require c' "alertStringsCI"
+                     <*> require c' "domain"
+                     <*> require c' "nthreads"
+                     <*> require c' "pauseMax"
+                     <*> require c' "recipients"
+                     <*> require c' "sender"
+                     <*> require c' "smtpServer"
 
