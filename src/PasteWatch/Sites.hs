@@ -58,12 +58,10 @@ siteConfigs =
 -- | Check contents of a URL against given check function
 -- Must be implemented for every new site
 doCheck::Site -> URL -> (S.ByteString->Bool) -> IO (Either ResultCode String)
-doCheck sitet url contentMatch =
-    case sitet of
-        Pastebin  -> doCheck' url contentMatch (css "textarea")
-        Pastie    -> doCheck' url contentMatch (css "pre[class=textmate-source]")
-        SkidPaste -> doCheck' url contentMatch (css "div[class=content]")
-        Slexy     -> doCheck' url contentMatch (css "div[class=text]")
+doCheck Pastebin  = doCheck' (css "textarea")
+doCheck Pastie    = doCheck' (css "pre[class=textmate-source]")
+doCheck SkidPaste = doCheck' (css "div[class=content]")
+doCheck Slexy     = doCheck' (css "div[class=text]")
 
 -- | Get all the new pastes from a given site
 -- Must be implemented for every new site
@@ -94,11 +92,11 @@ getNewPastes Slexy = do
 -----------------------------------------------------------
 
 -- internal helper function
-doCheck'::URL
+doCheck'::IOSLA (XIOState ()) (NTree XNode) (NTree XNode)
+        -> URL
         -> (S.ByteString->Bool)
-        -> IOSLA (XIOState ()) (NTree XNode) (NTree XNode)
         -> IO (Either ResultCode String)
-doCheck' url contentMatch cssfunc = do
+doCheck' cssfunc url contentMatch  = do
     resp <- onException (fetchURL url) (return FAILED)
     case resp of
         Left a -> return $!! Left a
