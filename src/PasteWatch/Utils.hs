@@ -49,7 +49,7 @@ sendEmail sender
     toName (n,e) = NameAddr (Just n) e
 
 -- | Remote outmost ""s from a string
-sq :: String -> String
+sq::String -> String
 sq ('"':s)  | last s == '"'  = init s
             | otherwise      = s
 sq ('\'':s) | last s == '\'' = init s
