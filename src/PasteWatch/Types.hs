@@ -8,11 +8,13 @@ module PasteWatch.Types
         Domain(..),
         Email(..),
         Host(..),
-        Task(..),
+        MatchText(..),
+        PasteContents(..),
         ResultCode(..),
         Site(..),
         SiteConfig(..),
         SiteConfigs,
+        Task(..),
         URL(..),
         UserConfig(..),
         Worker,
@@ -81,6 +83,14 @@ instance DCT.Configured Host where
     convert _              = Nothing
 
 instance NFData Host where rnf = genericRnf
+
+newtype MatchText = MatchText T.Text deriving (Eq, Generic, Show, Value)
+
+instance NFData MatchText where rnf = genericRnf
+
+newtype PasteContents = PasteContents T.Text deriving (Eq, Generic, Show, Value)
+
+instance NFData PasteContents where rnf = genericRnf
 
 -- | Simple type to store URLs
 newtype URL = URL T.Text deriving (Eq, Generic, Hashable, Show, Value)
@@ -195,7 +205,7 @@ data WorkerState = WorkerState {
   -- | The check function
   -- | This is static for now, but in time we want this to change, so put it in
   -- | State not Reader
-  checkFunction :: S.ByteString -> Maybe T.Text,
+  checkFunction :: S.ByteString -> Maybe MatchText,
   -- | Random number generator for each thread
   randGen       :: StdGen
 }

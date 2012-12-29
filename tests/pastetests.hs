@@ -1,22 +1,23 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-import Control.Monad
-import Data.Monoid      (mconcat)
-import Data.Maybe
-import PasteWatch.Alert (checkContent)
-import Test.HUnit
-import System.Exit      (exitFailure, exitSuccess)
-import System.IO.Unsafe (unsafePerformIO)
+import           Control.Monad
+import           Data.Monoid      (mconcat)
+import           Data.Maybe
+import qualified Data.Text as T
+import           PasteWatch.Alert (checkContent)
+import           Test.HUnit
+import           System.Exit      (exitFailure, exitSuccess)
+import           System.IO.Unsafe (unsafePerformIO)
 
-import PasteWatch.Config
-import PasteWatch.Sites
-import PasteWatch.Types
+import           PasteWatch.Config
+import           PasteWatch.Sites
+import           PasteWatch.Types
 
 -- skid paste output includes a "Parsed in 0.000 seconds" type output
 -- so just do a simple match
 skidpasteMatch c = case c of
-    Left  _      -> False
-    Right (_, s) -> "@example.com" `elem` mconcat (map words $ lines s)
+    Left  _                    -> False
+    Right (_, PasteContents s) -> "@example.com" `elem` mconcat (map T.words $ T.lines s)
 
 -- next two functions just fix up Maybe v Bool results for the tests
 checkContent' s = case r of
@@ -27,6 +28,7 @@ checkContent' s = case r of
 
 checkContent'' = checkContent ["@example.com", "@sub.example.com"] ["my company inc"]
 
+-- | run a check that gets a given URL (paste) from a site
 -- using unsafePerformIO here means that the
 -- tests will fail if no internet connectivity is available
 unsafeDoCheck site url = unsafePerformIO $ doCheck site url checkContent''
@@ -46,19 +48,23 @@ testList = [TestCase $ assertBool "Test single line T1"
             TestCase $ assertBool "Test single line T3"
                         (checkContent' "stuff about My Company Inc being hacked"),
             TestCase $ assertEqual "get pastebin"
-                        (Right ("@example.com", "testing @example.com testing"))
+                        (Right (MatchText "@example.com",
+                                PasteContents "testing @example.com testing"))
                         (unsafeDoCheck Pastebin $ URL "http://pastebin.com/bLFduQqs"),
             TestCase $ assertEqual "get pastie"
-                        (Right ("@example.com", "testing @example.com testing\n"))
+                        (Right (MatchText "@example.com",
+                                PasteContents"testing @example.com testing\n"))
                         (unsafeDoCheck Pastie $ URL "http://pastie.org/5406980"),
             TestCase $ assertBool "get skidpaste"
                         (skidpasteMatch $ unsafeDoCheck SkidPaste $
                             URL "http://skidpaste.org/3cOMCRpA"),
             TestCase $ assertEqual "get slexy"
-                        (Right ("@example.com", "testing @example.com testing\n"))
+                        (Right (MatchText "@example.com",
+                                PasteContents "testing @example.com testing\n"))
                         (unsafeDoCheck Slexy $ URL "http://slexy.org/view/s2Fv9q8J2H"),
             TestCase $ assertEqual "get snipt"
-                        (Right ("@example.com", "testing @example.com testing"))
+                        (Right (MatchText "@example.com",
+                                PasteContents "testing @example.com testing"))
                         (unsafeDoCheck Snipt $ URL "http://snipt.org/zkfe8/plaintext")
            ]
 

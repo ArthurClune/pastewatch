@@ -13,7 +13,6 @@ import qualified Data.ByteString.Char8 as S
 import qualified Data.HashMap.Strict as Map
 import           Data.List                  (unfoldr)
 import           Data.Maybe                 (fromJust)
-import qualified Data.Text as T
 import qualified Data.Time.Clock as Time
 import           System.Random
 import qualified System.Remote.Counter as SRC
@@ -31,7 +30,7 @@ import PasteWatch.Utils  (sendEmail)
 ---------------------------------------------------
 
 -- | email the admins
-emailFile::URL -> T.Text -> String -> Worker ()
+emailFile::URL -> MatchText -> PasteContents -> Worker ()
 emailFile url match content = do
     conf <- ask
     liftIO $ do
@@ -41,7 +40,7 @@ emailFile url match content = do
                (domain conf)
                (smtpServer conf)
                ("Pastebin alert. Match on " ++ show match)
-               (show url ++ "\n\n" ++ content)
+               (show url ++ "\n\n" ++ show content)
 
 ---------------------------------------------------
 -- Functions to maintain our map of urls and time
@@ -198,7 +197,7 @@ spawnControlThread ekg jobs sitet = do
 -- | Spawn set of worker threads
 spawnWorkerThread::TChan Task
                 -> UserConfig
-                -> (S.ByteString -> Maybe T.Text)
+                -> (S.ByteString -> Maybe MatchText)
                 -> Int
                 -> IO ThreadId
 spawnWorkerThread jobs conf checkf seed =
