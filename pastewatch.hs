@@ -13,6 +13,7 @@ import qualified Data.ByteString.Char8 as S
 import qualified Data.HashMap.Strict as Map
 import           Data.List                  (unfoldr)
 import           Data.Maybe                 (fromJust)
+import qualified Data.Text as T
 import qualified Data.Time.Clock as Time
 import           System.Random
 import qualified System.Remote.Counter as SRC
@@ -30,16 +31,16 @@ import PasteWatch.Utils  (sendEmail)
 ---------------------------------------------------
 
 -- | email the admins
-emailFile::URL -> String -> Worker ()
-emailFile url content = do
+emailFile::URL -> T.Text -> String -> Worker ()
+emailFile url match content = do
     conf <- ask
     liftIO $ do
-        putStrLn $ "Alerting on URL " ++ show url
+        putStrLn $ "Alerting: URL " ++ show url ++ " matches " ++ show match
         sendEmail (sender conf)
                (recipients conf)
                (domain conf)
                (smtpServer conf)
-               "Pastebin alert"
+               ("Pastebin alert. Match on " ++ show match)
                (show url ++ "\n\n" ++ content)
 
 ---------------------------------------------------
@@ -116,9 +117,9 @@ checkone = forever $ do
                 FAILED   -> writeResult rq FAILED
                 NO_MATCH -> writeResult rq NO_MATCH
                 SUCCESS  -> error "Bad error result code in checkone"
-            Right content -> do
+            Right (match, content) -> do
                 liftIO . atomically $ writeTChan rq SUCCESS
-                emailFile url content
+                emailFile url match content
   where
     writeResult rq code = liftIO . atomically $ writeTChan rq code
 
@@ -197,7 +198,7 @@ spawnControlThread ekg jobs sitet = do
 -- | Spawn set of worker threads
 spawnWorkerThread::TChan Task
                 -> UserConfig
-                -> (S.ByteString -> Bool)
+                -> (S.ByteString -> Maybe T.Text)
                 -> Int
                 -> IO ThreadId
 spawnWorkerThread jobs conf checkf seed =

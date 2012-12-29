@@ -195,7 +195,7 @@ data WorkerState = WorkerState {
   -- | The check function
   -- | This is static for now, but in time we want this to change, so put it in
   -- | State not Reader
-  checkFunction :: S.ByteString -> Bool,
+  checkFunction :: S.ByteString -> Maybe T.Text,
   -- | Random number generator for each thread
   randGen       :: StdGen
 }
