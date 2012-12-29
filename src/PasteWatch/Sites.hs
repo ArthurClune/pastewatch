@@ -28,14 +28,18 @@ import PasteWatch.Types
 import PasteWatch.Utils  (sq)
 
 -- | Config for our sites
+-- delayTime is lower for busier sites
+-- errorTime is higher for pastebin as they block clients for a period after
+-- too many requests
+-- pruneTime is lower for busier sites
 siteConfigs::SiteConfigs
 siteConfigs = Map.fromList [
-  -- (Site, SiteConfig siteType delayTime errorTime pruneTime)
+  -- (Site, SiteConfig delayTime errorTime pruneTime)
   (Pastebin,  SiteConfig  16 1803  600),
-  (Pastie,    SiteConfig  41 1803 1200),
-  (SkidPaste, SiteConfig 247 1803 7200),
-  (Slexy,     SiteConfig 251 1803 7200),
-  (Snipt,     SiteConfig 254 1803 7200)
+  (Pastie,    SiteConfig  41  203 1200),
+  (SkidPaste, SiteConfig 247  203 7200),
+  (Slexy,     SiteConfig 251  203 7200),
+  (Snipt,     SiteConfig 254  203 7200)
   ]
 
 -- | Check contents of a URL against given check function
