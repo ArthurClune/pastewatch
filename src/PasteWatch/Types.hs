@@ -23,7 +23,6 @@ module PasteWatch.Types
         runControl,
         execWorker,
         runWorker,
-        toString
     ) where
 
 import           Control.Concurrent.STM         (TChan)
@@ -46,14 +45,8 @@ import           System.Random
 -- simple types
 --------------------------------------------------------------
 
-class Value a where
-    toString :: a -> String
-
-instance Value T.Text where
-    toString = T.unpack
-
 -- | A domain (e.g. "example.com")
-newtype Domain = Domain T.Text deriving (Eq, Generic, Show, Value)
+newtype Domain = Domain T.Text deriving (Eq, Generic, Show)
 
 instance DCT.Configured Domain where
     convert (DCT.String v) = Just $ Domain v
@@ -62,7 +55,7 @@ instance DCT.Configured Domain where
 instance NFData Domain where rnf = genericRnf
 
 -- | Email address ("Real Name", "email address")
-newtype Email = Email T.Text deriving (Eq, Generic, Show, Value)
+newtype Email = Email T.Text deriving (Eq, Generic, Show)
 
 instance DCT.Configured Email where
     convert (DCT.String v) = Just $ Email v
@@ -70,13 +63,8 @@ instance DCT.Configured Email where
 
 instance NFData Email where rnf = genericRnf
 
--- | Custom results when getting paste
-data ResultCode = SUCCESS | NO_MATCH | FAILED | RETRY deriving (Enum, Eq, Generic, Show)
-
-instance NFData ResultCode where rnf = genericRnf
-
 -- | A hostname (e.g. smtp.example.com)
-newtype Host = Host T.Text deriving (Eq, Generic, Show, Value)
+newtype Host = Host T.Text deriving (Eq, Generic, Show)
 
 instance DCT.Configured Host where
     convert (DCT.String v) = Just $ Host v
@@ -84,16 +72,23 @@ instance DCT.Configured Host where
 
 instance NFData Host where rnf = genericRnf
 
-newtype MatchText = MatchText T.Text deriving (Eq, Generic, Show, Value)
+-- | The text we matched on in a paste
+newtype MatchText = MatchText T.Text deriving (Eq, Generic, Show)
 
 instance NFData MatchText where rnf = genericRnf
 
-newtype PasteContents = PasteContents T.Text deriving (Eq, Generic, Show, Value)
+-- | Plain text contents of a paste
+newtype PasteContents = PasteContents T.Text deriving (Eq, Generic, Show)
 
 instance NFData PasteContents where rnf = genericRnf
 
+-- | Custom results when getting paste
+data ResultCode = SUCCESS | NO_MATCH | FAILED | RETRY deriving (Enum, Eq, Generic, Show)
+
+instance NFData ResultCode where rnf = genericRnf
+
 -- | Simple type to store URLs
-newtype URL = URL T.Text deriving (Eq, Generic, Hashable, Show, Value)
+newtype URL = URL T.Text deriving (Eq, Generic, Hashable, Show)
 
 instance DCT.Configured URL where
     convert (DCT.String v) = Just $ URL v
@@ -131,6 +126,7 @@ data SiteConfig = SiteConfig {
 
 instance NFData SiteConfig where rnf = genericRnf
 
+-- | HashMap to store site specific config
 type SiteConfigs = Map.HashMap Site SiteConfig
 
 -- | Type to hold user config

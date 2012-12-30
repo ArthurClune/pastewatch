@@ -20,7 +20,7 @@ instance Configured a => Configured [a] where
     convert (List xs) = mapM convert xs
     convert _             = Nothing
 
--- quick and dirty command line args handling
+-- | Quick and dirty command line args handling
 parseArgs::IO FilePath
 parseArgs = do
     args <- getArgs
@@ -28,6 +28,7 @@ parseArgs = do
         then return (head args)
         else abort "Usage: urllogs.hs <config file>"
 
+-- | Parse config file
 parseConfig::FilePath -> IO UserConfig
 parseConfig file = do
   c <- runEitherT $ tryIO $ load [Required file]

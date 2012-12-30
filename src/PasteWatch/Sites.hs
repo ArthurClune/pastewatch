@@ -106,7 +106,7 @@ doCheck' cssfunc url contentMatch  = do
 
 fetchURL::URL -> IO (Either ResultCode (IOSArrow XmlTree (NTree XNode)))
 fetchURL url = do
-    resp <- simpleHTTP $ getRequest (toString url)
+    resp <- simpleHTTP $ getRequest (show url)
     case resp of
         Left _  -> return $ Left FAILED
         Right r -> case rspCode r of
