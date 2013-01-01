@@ -9,7 +9,6 @@ import           Control.DeepSeq            ( ($!!) )
 import           Control.Error
 import           Control.Monad.Reader
 import           Control.Monad.State
-import qualified Data.ByteString.Char8 as S
 import qualified Data.HashMap.Strict as Map
 import           Data.List                  (unfoldr)
 import           Data.Maybe                 (fromJust)

@@ -13,8 +13,6 @@ module PasteWatch.Sites
 
 import           Control.DeepSeq            ( ($!!) )
 import           Control.Exception          (onException)
-import qualified Data.ByteString as S
-import qualified Data.ByteString.Char8 as B (pack)
 import qualified Data.HashMap.Strict as Map
 import qualified Data.Text as T
 import           Data.Tree.NTree.TypeDefs
