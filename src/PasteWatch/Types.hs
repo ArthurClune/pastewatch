@@ -8,7 +8,7 @@ module PasteWatch.Types
         Domain(..),
         Email(..),
         Host(..),
-        MatchText(..),
+        MatchLine(..),
         PasteContents(..),
         ResultCode(..),
         Site(..),
@@ -71,10 +71,10 @@ instance DCT.Configured Host where
 
 instance NFData Host where rnf = genericRnf
 
--- | The text we matched on in a paste
-newtype MatchText = MatchText T.Text deriving (Eq, Generic, Show)
+-- | A line in a paste that we have alerted on
+newtype MatchLine = MatchLine T.Text deriving (Eq, Generic, Show)
 
-instance NFData MatchText where rnf = genericRnf
+instance NFData MatchLine where rnf = genericRnf
 
 -- | Plain text contents of a paste
 newtype PasteContents = PasteContents T.Text deriving (Eq, Generic, Show)
@@ -200,7 +200,7 @@ data WorkerState = WorkerState {
   -- | The check function
   -- | This is static for now, but in time we want this to change, so put it in
   -- | State not Reader
-  checkFunction :: T.Text -> Maybe MatchText,
+  checkFunction :: T.Text -> Maybe MatchLine,
   -- | Random number generator for each thread
   randGen       :: StdGen
 }

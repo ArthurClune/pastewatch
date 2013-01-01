@@ -7,23 +7,21 @@ module PasteWatch.Alert
 
 import           Control.Applicative
 import qualified Data.Attoparsec.Text as A
-import           Data.Maybe()
+import           Data.List                  (find)
+import           Data.Maybe
 import qualified Data.Text as T
 
 import PasteWatch.Types
 
--- | Return True iff the given string includes our patterns
-checkContent::[T.Text] -> [T.Text] -> T.Text -> Maybe MatchText
+-- | Return if the given string includes our patterns, return the first matching line
+checkContent::[T.Text] -> [T.Text] -> T.Text -> Maybe MatchLine
 checkContent alerts alertsci s =
-    case A.maybeResult $ A.feed (A.parse alertp s) T.empty of
-                Nothing -> Nothing
-                Just v  -> Just $ MatchText v
+    case find isJust $ map parseLine (T.lines s) of
+      Nothing -> Nothing
+      Just v  -> v
   where
-    alertp = manyTill (A.choice matchlist) <* A.takeText
+    parseLine l = case A.maybeResult $ A.feed (A.parse alertp l) T.empty of
+                Nothing -> Nothing
+                Just _  -> Just $ MatchLine l
+    alertp = A.manyTill A.anyChar (A.choice matchlist) <* A.takeText
     matchlist = map A.string alerts ++ map A.stringCI alertsci
-
--- | parse zero or more instances of end, skipping over one character on failure
--- and returning the matched text if one succeeds
-manyTill::A.Parser T.Text-> A.Parser T.Text
-manyTill end = scan
-    where scan = end <|> (A.take 1) *> scan

@@ -30,7 +30,7 @@ import PasteWatch.Utils  (sendEmail)
 ---------------------------------------------------
 
 -- | email the admins
-emailFile::URL -> MatchText -> PasteContents -> Worker ()
+emailFile::URL -> MatchLine -> PasteContents -> Worker ()
 emailFile url match content = do
     conf <- ask
     liftIO $ do
@@ -197,7 +197,7 @@ spawnControlThread ekg jobs sitet = do
 -- | Spawn set of worker threads
 spawnWorkerThread::TChan Task
                 -> UserConfig
-                -> (T.Text -> Maybe MatchText)
+                -> (T.Text -> Maybe MatchLine)
                 -> Int
                 -> IO ThreadId
 spawnWorkerThread jobs conf checkf seed =
