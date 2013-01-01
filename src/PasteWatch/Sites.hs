@@ -57,7 +57,7 @@ doCheck Snipt     = doCheck' (css "textarea")
 getNewPastes::Site -> IO [URL]
 
 getNewPastes Pastebin = do
-    doc   <- fromUrl "http://www.pastebin.com/trends"
+    doc   <- fromUrl "http://www.pastebin.com"
     links <- runX $ doc >>> css "ul[class=right_menu] a" ! "href"
     return $!! map (URL . T.pack . ("http://pastebin.com" ++ )) links
 
