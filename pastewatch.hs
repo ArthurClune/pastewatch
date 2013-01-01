@@ -197,7 +197,7 @@ spawnControlThread ekg jobs sitet = do
 -- | Spawn set of worker threads
 spawnWorkerThread::TChan Task
                 -> UserConfig
-                -> (T.Text -> Maybe MatchLine)
+                -> (PasteContents -> Maybe MatchLine)
                 -> Int
                 -> IO ThreadId
 spawnWorkerThread jobs conf checkf seed =

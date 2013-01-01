@@ -14,8 +14,8 @@ import qualified Data.Text as T
 import PasteWatch.Types
 
 -- | Return if the given string includes our patterns, return the first matching line
-checkContent::[T.Text] -> [T.Text] -> T.Text -> Maybe MatchLine
-checkContent alerts alertsci s =
+checkContent::[T.Text] -> [T.Text] -> PasteContents -> Maybe MatchLine
+checkContent alerts alertsci (PasteContents s) =
     case find isJust $ map parseLine (T.lines s) of
       Nothing -> Nothing
       Just v  -> v
