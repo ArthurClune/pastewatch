@@ -9,75 +9,62 @@ import           Test.HUnit
 import           System.Exit      (exitFailure, exitSuccess)
 import           System.IO.Unsafe (unsafePerformIO)
 
-import           PasteWatch.Config
 import           PasteWatch.Sites
-import           PasteWatch.Types
+import           PasteWatch.Types (MatchText(..), PasteContents(..), Site(..), URL(..))
 
--- skid paste output includes a "Parsed in 0.000 seconds" type output
--- so just do a simple match
-skidpasteMatch c = case c of
-    Left  _                    -> False
-    Right (_, PasteContents s) -> "@example.com" `elem` mconcat (map T.words $ T.lines s)
+alertStrings   = ["@example.com", "@sub.example.com"]
+alertStringsCI = ["my company inc"]
 
--- next two functions just fix up Maybe v Bool results for the tests
-checkContent' s = case r of
-                    Just _  -> True
-                    Nothing -> False
-                  where
-                    r = checkContent'' s
+checkContentF s = case checkContent alertStrings alertStringsCI s of
+    Nothing  -> True
+    Just  _  -> False
 
-checkContent'' = checkContent ["@example.com", "@sub.example.com"] ["my company inc"]
+checkContentT s = case checkContent alertStrings alertStringsCI s of
+    Nothing             -> False
+    Just (MatchText s') -> s == s
 
 -- | run a check that gets a given URL (paste) from a site
 -- using unsafePerformIO here means that the
 -- tests will fail if no internet connectivity is available
-unsafeDoCheck site url = unsafePerformIO $ doCheck site url checkContent''
+unsafeDoCheck site url = unsafePerformIO $
+                            doCheck site url (checkContent alertStrings alertStringsCI)
 
-testList = [TestCase $ assertBool "Test single line T1"
-                        (checkContent' "stuff in a@example.com dsfd"),
-            TestCase $ assertBool "Test single line F1"
-                        (not $ checkContent' "some content in here"),
-            TestCase $ assertBool "Test single line T2"
-                        (checkContent' "yeah root@example.com/password stuff"),
-            TestCase $ assertBool "Test multi line T1"
-                        (checkContent' "one line\ntwo line\ntree @sub.example.com line"),
-            TestCase $ assertBool "Test multi line F1"
-                        (not $ checkContent' "one line  \n two line"),
-            TestCase $ assertBool "Test singe line F2"
-                        (not $ checkContent' "some text about a company doing stuff"),
-            TestCase $ assertBool "Test single line T3"
-                        (checkContent' "stuff about My Company Inc being hacked"),
-            TestCase $ assertEqual "get pastebin"
-                        (Right (MatchText "@example.com",
-                                PasteContents "testing @example.com testing"))
-                        (unsafeDoCheck Pastebin $ URL "http://pastebin.com/bLFduQqs"),
-            TestCase $ assertEqual "get pastie"
-                        (Right (MatchText "@example.com",
-                                PasteContents"testing @example.com testing\n"))
-                        (unsafeDoCheck Pastie $ URL "http://pastie.org/5406980"),
-            TestCase $ assertBool "get skidpaste"
-                        (skidpasteMatch $ unsafeDoCheck SkidPaste $
-                            URL "http://skidpaste.org/3cOMCRpA"),
-            TestCase $ assertEqual "get slexy"
-                        (Right (MatchText "@example.com",
-                                PasteContents "testing @example.com testing\n"))
-                        (unsafeDoCheck Slexy $ URL "http://slexy.org/view/s2Fv9q8J2H"),
-            TestCase $ assertEqual "get snipt"
-                        (Right (MatchText "@example.com",
-                                PasteContents "testing @example.com testing"))
-                        (unsafeDoCheck Snipt $ URL "http://snipt.org/zkfe8/plaintext")
+matchTests = [("Test single line T1", checkContentT "stuff in a@example.com dsfd"),
+              ("Test single line F1", checkContentF "some content in here"),
+              ("Test single line T2", checkContentT "yeah root@example.com/password stuff"),
+              ("Test multi line T1",  checkContentT "one line\ntwo line\ntree @sub.example.com line"),
+              ("Test multi line F1",  checkContentF "one line  \n two line"),
+              ("Test singe line F2",  checkContentF "some text about a company doing stuff")
            ]
 
+getPasteTests = [("get pastebin", "@example.com", "testing @example.com testing",
+                   Pastebin, URL "http://pastebin.com/bLFduQqs"),
+                ("get pastie", "@example.com", "testing @example.com testing\n",
+                   Pastie, URL "http://pastie.org/5406980"),
+                ("get slexy", "@example.com", "testing @example.com testing\n",
+                   Slexy, URL "http://slexy.org/view/s2Fv9q8J2H"),
+                ("get snipt", "@example.com", "testing @example.com testing",
+                   Snipt, URL "http://snipt.org/zkfe8/plaintext"),
+                ("get skidpaste", "@example.com", "\ntesting @example.com testingParsed in 0.000 seconds\n",
+                    SkidPaste, URL "http://skidpaste.org/3cOMCRpA")
+               ]
+
 -- test the new paste functions don't return an empty list
-testNewPastes =   map
-                    (\s -> TestCase $ assertBool ""
-                                (null $ unsafePerformIO $ getNewPastes s))
+newPasteTests = map (\s -> TestCase $ assertBool ""
+                    (not $ null $ unsafePerformIO $ getNewPastes s))
                     [minBound..maxBound]
+
+runGetPasteTest (text, matchtext, contents, site, url) =
+    TestCase $ assertEqual text (Right (MatchText matchtext, PasteContents contents))
+                                (unsafeDoCheck site url)
+
+runMatchTest (text, test) = TestCase $ assertBool text test
 
 main::IO ()
 main =
-    do c1 <- runTestTT $ TestList testList
-       c2 <- runTestTT $ TestList testNewPastes
-       if any (\x -> errors x /= 0 && failures x /= 0) [c1, c2]
+    do c1 <- runTestTT $ TestList $ map runMatchTest matchTests
+       c2 <- runTestTT $ TestList $ map runGetPasteTest getPasteTests
+       c3 <- runTestTT $ TestList newPasteTests
+       if any (\x -> errors x /= 0 || failures x /= 0) [c1, c2, c3]
             then exitFailure
             else exitSuccess

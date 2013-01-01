@@ -30,7 +30,6 @@ import           Control.DeepSeq
 import           Control.DeepSeq.Generics       (genericRnf)
 import           Control.Monad.Reader
 import           Control.Monad.State
-import qualified Data.ByteString.Char8 as S
 import qualified Data.Configurator.Types as DCT
 import           Data.Hashable
 import qualified Data.HashMap.Strict as Map
@@ -132,9 +131,9 @@ type SiteConfigs = Map.HashMap Site SiteConfig
 -- | Type to hold user config
 data UserConfig = UserConfig {
      -- | Strings to alert on (case sensitive) if seen in a paste
-    alertStrings   :: ![S.ByteString],
+    alertStrings   :: ![T.Text],
     -- | Strings to alert on (case insensitive) if seen in a paste
-    alertStringsCI :: ![S.ByteString],
+    alertStringsCI :: ![T.Text],
      -- | Domain that email comes from
     domain         :: !Domain,
     -- | Number of Haskell (lightweight) threads to use
@@ -201,7 +200,7 @@ data WorkerState = WorkerState {
   -- | The check function
   -- | This is static for now, but in time we want this to change, so put it in
   -- | State not Reader
-  checkFunction :: S.ByteString -> Maybe MatchText,
+  checkFunction :: T.Text -> Maybe MatchText,
   -- | Random number generator for each thread
   randGen       :: StdGen
 }

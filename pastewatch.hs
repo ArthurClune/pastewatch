@@ -13,6 +13,7 @@ import qualified Data.ByteString.Char8 as S
 import qualified Data.HashMap.Strict as Map
 import           Data.List                  (unfoldr)
 import           Data.Maybe                 (fromJust)
+import qualified Data.Text as T
 import qualified Data.Time.Clock as Time
 import           System.Random
 import qualified System.Remote.Counter as SRC
@@ -197,7 +198,7 @@ spawnControlThread ekg jobs sitet = do
 -- | Spawn set of worker threads
 spawnWorkerThread::TChan Task
                 -> UserConfig
-                -> (S.ByteString -> Maybe MatchText)
+                -> (T.Text -> Maybe MatchText)
                 -> Int
                 -> IO ThreadId
 spawnWorkerThread jobs conf checkf seed =
