@@ -14,7 +14,7 @@ import qualified Data.Text as T
 
 import PasteWatch.Types
 
--- | Return if the given string includes our patterns, return the first matching line
+-- | If the given string includes our patterns, return the first matching line
 checkContent::[T.Text] -> [T.Text] -> PasteContents -> Maybe MatchLine
 checkContent alerts alertsci (PasteContents s) =
     join $ find isJust $ map parseLine (T.lines s)
