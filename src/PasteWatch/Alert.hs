@@ -6,6 +6,7 @@ module PasteWatch.Alert
    ) where
 
 import           Control.Applicative
+import           Control.Monad              (join)
 import qualified Data.Attoparsec.Text as A
 import           Data.List                  (find)
 import           Data.Maybe
@@ -16,9 +17,7 @@ import PasteWatch.Types
 -- | Return if the given string includes our patterns, return the first matching line
 checkContent::[T.Text] -> [T.Text] -> PasteContents -> Maybe MatchLine
 checkContent alerts alertsci (PasteContents s) =
-    case find isJust $ map parseLine (T.lines s) of
-      Nothing -> Nothing
-      Just v  -> v
+    join $ find isJust $ map parseLine (T.lines s)
   where
     parseLine l = case A.maybeResult $ A.feed (A.parse alertp l) T.empty of
                 Nothing -> Nothing
