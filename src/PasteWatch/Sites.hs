@@ -91,9 +91,9 @@ doCheck'::IOSLA (XIOState ()) (NTree XNode) (NTree XNode)
         -> (PasteContents->Maybe MatchLine)
         -> IO (Either ResultCode (MatchLine, PasteContents))
 doCheck' cssfunc url contentMatch  = do
-    resp <- onException (fetchURL url) (return FAILED)
+    resp <- catch (fetchURL url) (\_ -> return $ Left FAILED)
     case resp of
-        Left a -> return $!! Left a
+        Left a    -> return $! Left a
         Right doc -> extractContent doc
   where
     extractContent doc = do
