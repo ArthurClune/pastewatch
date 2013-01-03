@@ -23,4 +23,4 @@ checkContent alerts alertsci (PasteContents s) =
                 Nothing -> Nothing
                 Just _  -> Just $ MatchLine l
     alertp = A.manyTill A.anyChar (A.choice matchlist) <* A.takeText
-    matchlist = map A.string alerts ++ map A.stringCI alertsci
+    matchlist = map A.string alerts ++ map A.asciiCI alertsci
