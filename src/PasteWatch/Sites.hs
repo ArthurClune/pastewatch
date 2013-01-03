@@ -11,8 +11,10 @@ module PasteWatch.Sites
         siteConfigs
     ) where
 
+import          Prelude hiding (catch)
+
 import           Control.DeepSeq            ( ($!!) )
-import           Control.Exception          (onException)
+import           Control.Error
 import qualified Data.HashMap.Strict as Map
 import qualified Data.Text as T
 import           Data.Tree.NTree.TypeDefs
@@ -33,7 +35,7 @@ import PasteWatch.Utils  (sq)
 siteConfigs::SiteConfigs
 siteConfigs = Map.fromList [
   -- (Site, SiteConfig delayTime errorTime pruneTime)
-  (Pastebin,  SiteConfig  16 1803  600),
+  (Pastebin,  SiteConfig  19 3603  600),
   (Pastie,    SiteConfig  41  203 1200),
   (SkidPaste, SiteConfig 247  203 7200),
   (Slexy,     SiteConfig 251  203 7200),
@@ -91,10 +93,12 @@ doCheck'::IOSLA (XIOState ()) (NTree XNode) (NTree XNode)
         -> (PasteContents->Maybe MatchLine)
         -> IO (Either ResultCode (MatchLine, PasteContents))
 doCheck' cssfunc url contentMatch  = do
-    resp <- catch (fetchURL url) (\_ -> return $ Left FAILED)
-    case resp of
-        Left a    -> return $! Left a
-        Right doc -> extractContent doc
+    res <- runEitherT $ tryIO $ fetchURL url
+    case res of
+        Left _ -> return $! Left FAILED
+        Right resp -> case resp of
+          Left  a   -> return $! Left a
+          Right doc -> extractContent doc
   where
     extractContent doc = do
         content <- runX . xshow $ doc >>> cssfunc >>> deep isText
