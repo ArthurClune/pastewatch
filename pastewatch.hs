@@ -36,16 +36,16 @@ import PasteWatch.Types
 ---------------------------------------------------
 
 storeInDB::URL -> MatchText -> PasteContents -> Worker ()
-storeInDB url match content = do
+storeInDB (URL url) (MatchText match) (PasteContents content) = do
     conf <- get
     ts   <- liftIO Time.getCurrentTime
     let run = DB.access (dbPipe conf) DB.master (db conf)
     let paste = ["schemaVer" =: (1::Int),
                  "ts"        =: ts,
-                 "url"       =: show url,
-                 "content"   =: show content,
-                 "tags"      =: [show match],
-                 "alertedOn" =: show match
+                 "url"       =: url,
+                 "content"   =: content,
+                 "tags"      =: [match],
+                 "alertedOn" =: match
                 ]
     liftIO $ do
         putStrLn $ "Writing to DB: URL " ++ show url ++ " matches " ++ show match
