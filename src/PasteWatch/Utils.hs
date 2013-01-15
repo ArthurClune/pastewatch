@@ -43,7 +43,7 @@ sendEmail (Email sender)
     let SockAddrInet _ hostAddr = addrAddress (head addrs)
         sockAddr = SockAddrInet 25 hostAddr
     sentRef <- newIORef []
-    sendSMTP (Just sentRef) (myDomain') sockAddr [message]
+    sendSMTP (Just sentRef) myDomain' sockAddr [message]
     return ()
   where
     myDomain'    = sqt myDomain

@@ -46,8 +46,8 @@ siteConfigs = Map.fromList [
 -- Must be implemented for every new site
 doCheck::Site
        -> URL
-       -> (PasteContents->Maybe MatchLine)
-       -> IO (Either ResultCode (MatchLine, PasteContents))
+       -> (PasteContents->Maybe MatchText)
+       -> IO (Either ResultCode (MatchText, PasteContents))
 doCheck Pastebin  = doCheck' (css "textarea")
 doCheck Pastie    = doCheck' (css "pre[class=textmate-source]")
 doCheck SkidPaste = doCheck' (css "div[class=content]")
@@ -90,8 +90,8 @@ getNewPastes Snipt = do
 -- internal helper function
 doCheck'::IOSLA (XIOState ()) (NTree XNode) (NTree XNode)
         -> URL
-        -> (PasteContents->Maybe MatchLine)
-        -> IO (Either ResultCode (MatchLine, PasteContents))
+        -> (PasteContents->Maybe MatchText)
+        -> IO (Either ResultCode (MatchText, PasteContents))
 doCheck' cssfunc url contentMatch  = do
     res <- runEitherT $ tryIO $ fetchURL url
     case res of

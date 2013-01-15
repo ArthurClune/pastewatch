@@ -45,4 +45,6 @@ parseConfig file = do
                      <*> require c' "recipients"
                      <*> require c' "sender"
                      <*> require c' "smtpServer"
+                     <*> require c' "dbHost"
+                     <*> require c' "dbName"
 

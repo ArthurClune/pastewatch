@@ -1,4 +1,5 @@
-{-# LANGUAGE DeriveGeneric, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DeriveGeneric, GeneralizedNewtypeDeriving, Rank2Types #-}
+
 -- | Core types
 module PasteWatch.Types
     (
@@ -8,7 +9,7 @@ module PasteWatch.Types
         Domain(..),
         Email(..),
         Host(..),
-        MatchLine(..),
+        MatchText(..),
         PasteContents(..),
         ResultCode(..),
         Site(..),
@@ -35,6 +36,7 @@ import           Data.Hashable
 import qualified Data.HashMap.Strict as Map
 import qualified Data.Text as T
 import qualified Data.Time.Clock as Time
+import qualified Database.MongoDB as DB
 import           GHC.Exts( IsString(..) )
 import           GHC.Generics
 import           System.Remote.Counter          (Counter)
@@ -73,9 +75,9 @@ instance DCT.Configured Host where
 instance NFData Host where rnf = genericRnf
 
 -- | A line in a paste that we have alerted on
-newtype MatchLine = MatchLine T.Text deriving (Eq, Generic, IsString, Show)
+newtype MatchText = MatchText T.Text deriving (Eq, Generic, IsString, Show)
 
-instance NFData MatchLine where rnf = genericRnf
+instance NFData MatchText where rnf = genericRnf
 
 -- | Plain text contents of a paste
 newtype PasteContents = PasteContents T.Text deriving (Eq, Generic, IsString, Show)
@@ -95,6 +97,11 @@ instance DCT.Configured URL where
     convert _              = Nothing
 
 instance NFData URL where rnf = genericRnf
+
+-- | Config instance for MongoDB.Host
+instance DCT.Configured DB.Host where
+    convert (DCT.String h) = Just $ DB.host $ T.unpack h
+    convert _              = Nothing
 
 --------------------------------------------------------------
 -- Config data structures
@@ -153,7 +160,11 @@ data UserConfig = UserConfig {
     -- | Send alert emails as?
     sender        :: !Email,
     -- | SMTP server to use to send email via
-    smtpServer    :: !Host
+    smtpServer    :: !Host,
+    -- | Hostname of mongoDB server
+    dbHost        :: !DB.Host,
+    -- | dbName
+    dbName        :: !DB.Database
 }
 
 --------------------------------------------------------------
@@ -201,9 +212,12 @@ data WorkerState = WorkerState {
   -- | The check function
   -- | This is static for now, but in time we want this to change, so put it in
   -- | State not Reader
-  checkFunction :: PasteContents -> Maybe MatchLine,
+  checkFunction :: PasteContents -> Maybe MatchText,
   -- | Random number generator for each thread
-  randGen       :: StdGen
+  randGen       :: StdGen,
+  -- | DB connection
+  dbPipe        :: DB.Pipe,
+  db            :: DB.Database
 }
 
 -- | All the per-site EKG Counters

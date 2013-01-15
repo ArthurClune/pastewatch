@@ -16,6 +16,8 @@ import qualified Data.Text as T
 import qualified Data.Time.Clock as Time
 import           Data.Time.Format           (formatTime)
 import           Data.Time.LocalTime        (getZonedTime)
+import qualified Database.MongoDB as DB
+import           Database.MongoDB           ( (=:) )
 import           GHC.Conc                   (numCapabilities)
 import           System.Locale              (defaultTimeLocale)
 import           System.Random
@@ -28,24 +30,27 @@ import PasteWatch.Alert  (checkContent)
 import PasteWatch.Config (parseArgs, parseConfig)
 import PasteWatch.Sites  (createCounters, createGauges, doCheck, getNewPastes, siteConfigs)
 import PasteWatch.Types
-import PasteWatch.Utils  (sendEmail)
 
 ---------------------------------------------------
 -- Low level functions
 ---------------------------------------------------
 
--- | email the admins
-emailFile::URL -> MatchLine -> PasteContents -> Worker ()
-emailFile url match content = do
-    conf <- ask
+storeInDB::URL -> MatchText -> PasteContents -> Worker ()
+storeInDB url match content = do
+    conf <- get
+    ts   <- liftIO Time.getCurrentTime
+    let run = DB.access (dbPipe conf) DB.master (db conf)
+    let paste = ["schemaVer" =: (1::Int),
+                 "ts"        =: ts,
+                 "url"       =: show url,
+                 "content"   =: show content,
+                 "tags"      =: [show match],
+                 "alertedOn" =: show match
+                ]
     liftIO $ do
-        putStrLn $ "Alerting: URL " ++ show url ++ " matches " ++ show match
-        sendEmail (sender conf)
-               (recipients conf)
-               (domain conf)
-               (smtpServer conf)
-               ("Pastebin alert. Match on " ++ show match)
-               (show url ++ "\n\n" ++ show content)
+        putStrLn $ "Writing to DB: URL " ++ show url ++ " matches " ++ show match
+        _ <- run $ DB.insert "pastes" paste
+        return ()
 
 ---------------------------------------------------
 -- Functions to maintain our map of urls and time
@@ -123,7 +128,7 @@ checkone = forever $ do
                 SUCCESS  -> error "Bad error result code in checkone"
             Right (match, content) -> do
                 liftIO . atomically $ writeTChan rq SUCCESS
-                emailFile url match content
+                storeInDB url match content
   where
     writeResult rq code = liftIO . atomically $ writeTChan rq code
 
@@ -202,12 +207,15 @@ spawnControlThread ekg jobs sitet = do
 -- | Spawn set of worker threads
 spawnWorkerThread::TChan Task
                 -> UserConfig
-                -> (PasteContents -> Maybe MatchLine)
+                -> DB.Pipe
                 -> Int
                 -> IO ThreadId
-spawnWorkerThread jobs conf checkf seed =
+spawnWorkerThread jobs conf dbPipe seed =
     forkIO
-        (void $ execWorker checkone (WorkerState jobs checkf (mkStdGen seed)) conf)
+        (void $ execWorker checkone (WorkerState jobs checkf (mkStdGen seed) dbPipe dbName') conf)
+  where
+    dbName' = dbName conf
+    checkf = checkContent (alertStrings conf) (alertStringsCI conf)
 
 ---------------------------------------------------
 -- | main
@@ -221,15 +229,17 @@ main = do
     jobs   <- newTChanIO
     seed   <- newStdGen
     ekg    <- forkServer "localhost" 8000
-    stLabel <- getLabel "Start time" ekg
-    paramLabel <- getLabel "# cores" ekg
-    startTime  <- getZonedTime
-    SRL.set stLabel $ T.pack $ formatTime defaultTimeLocale "%c" startTime
-    SRL.set paramLabel $ T.pack $ show numCapabilities
-    let checkf = checkContent (alertStrings config) (alertStringsCI config)
+    setLabels ekg
+    dbPipe <- DB.runIOE $ DB.connect $ dbHost config
     let seeds = randomlist (nthreads config) seed
-    mapM_ (spawnWorkerThread jobs config checkf) seeds
+    mapM_ (spawnWorkerThread jobs config dbPipe) seeds
     mapM_ (spawnControlThread ekg jobs) [minBound .. maxBound]
     forever $ threadDelay (360000 * 1000000)
   where
     randomlist n = take n . unfoldr (Just . random)
+    setLabels ekg = do
+        stLabel <- getLabel "Start time" ekg
+        paramLabel <- getLabel "# cores" ekg
+        startTime  <- getZonedTime
+        SRL.set stLabel $ T.pack $ formatTime defaultTimeLocale "%c" startTime
+        SRL.set paramLabel $ T.pack $ show numCapabilities
