@@ -46,7 +46,7 @@ import           System.Random
 --------------------------------------------------------------
 
 -- | A domain (e.g. "example.com")
-newtype Domain = Domain T.Text deriving (Eq, Generic, Show)
+newtype Domain = Domain T.Text deriving (Eq, Generic, IsString, Show)
 
 instance DCT.Configured Domain where
     convert (DCT.String v) = Just $ Domain v
@@ -55,7 +55,7 @@ instance DCT.Configured Domain where
 instance NFData Domain where rnf = genericRnf
 
 -- | Email address ("Real Name", "email address")
-newtype Email = Email T.Text deriving (Eq, Generic, Show)
+newtype Email = Email T.Text deriving (Eq, Generic, IsString, Show)
 
 instance DCT.Configured Email where
     convert (DCT.String v) = Just $ Email v
@@ -64,7 +64,7 @@ instance DCT.Configured Email where
 instance NFData Email where rnf = genericRnf
 
 -- | A hostname (e.g. smtp.example.com)
-newtype Host = Host T.Text deriving (Eq, Generic, Show)
+newtype Host = Host T.Text deriving (Eq, Generic, IsString, Show)
 
 instance DCT.Configured Host where
     convert (DCT.String v) = Just $ Host v
@@ -73,12 +73,12 @@ instance DCT.Configured Host where
 instance NFData Host where rnf = genericRnf
 
 -- | A line in a paste that we have alerted on
-newtype MatchLine = MatchLine T.Text deriving (Eq, Generic, Show)
+newtype MatchLine = MatchLine T.Text deriving (Eq, Generic, IsString, Show)
 
 instance NFData MatchLine where rnf = genericRnf
 
 -- | Plain text contents of a paste
-newtype PasteContents = PasteContents T.Text deriving (Eq, Generic, Show)
+newtype PasteContents = PasteContents T.Text deriving (Eq, Generic, IsString, Show)
 
 instance NFData PasteContents where rnf = genericRnf
 
@@ -88,7 +88,7 @@ data ResultCode = SUCCESS | NO_MATCH | FAILED | RETRY deriving (Enum, Eq, Generi
 instance NFData ResultCode where rnf = genericRnf
 
 -- | Simple type to store URLs
-newtype URL = URL T.Text deriving (Eq, Generic, Hashable, Show)
+newtype URL = URL T.Text deriving (Eq, Generic, Hashable, IsString, Show)
 
 instance DCT.Configured URL where
     convert (DCT.String v) = Just $ URL v

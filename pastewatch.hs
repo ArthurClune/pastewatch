@@ -14,10 +14,15 @@ import           Data.List                  (unfoldr)
 import           Data.Maybe                 (fromJust)
 import qualified Data.Text as T
 import qualified Data.Time.Clock as Time
+import           Data.Time.Format           (formatTime)
+import           Data.Time.LocalTime        (getZonedTime)
+import           GHC.Conc                   (numCapabilities)
+import           System.Locale              (defaultTimeLocale)
 import           System.Random
 import qualified System.Remote.Counter as SRC
 import qualified System.Remote.Gauge as SRG
-import           System.Remote.Monitoring   (forkServer, Server)
+import qualified System.Remote.Label as SRL
+import           System.Remote.Monitoring   (forkServer, getLabel, Server)
 
 import PasteWatch.Alert  (checkContent)
 import PasteWatch.Config (parseArgs, parseConfig)
@@ -216,6 +221,11 @@ main = do
     jobs   <- newTChanIO
     seed   <- newStdGen
     ekg    <- forkServer "localhost" 8000
+    stLabel <- getLabel "Start time" ekg
+    paramLabel <- getLabel "# cores" ekg
+    startTime  <- getZonedTime
+    SRL.set stLabel $ T.pack $ formatTime defaultTimeLocale "%c" startTime
+    SRL.set paramLabel $ T.pack $ show numCapabilities
     let checkf = checkContent (alertStrings config) (alertStringsCI config)
     let seeds = randomlist (nthreads config) seed
     mapM_ (spawnWorkerThread jobs config checkf) seeds
