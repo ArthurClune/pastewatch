@@ -5,10 +5,11 @@ module PasteWatch.Utils
       sq
     ) where
 
-import Data.IORef
-import Network.SMTP.Client
-import Network.Socket
-import System.Time         (getClockTime, toCalendarTime)
+import           Data.IORef
+import qualified Data.Text as T
+import           Network.SMTP.Client
+import           Network.Socket
+import           System.Time         (getClockTime, toCalendarTime)
 
 import PasteWatch.Types hiding (recipients, sender, smtpServer)
 
@@ -23,10 +24,10 @@ sendEmail::Email
            -> String
            -> String
            -> IO()
-sendEmail sender
+sendEmail (Email sender)
           recipients
-          myDomain
-          smtpServer
+          (Domain myDomain)
+          (Host smtpServer)
           subject
           content = do
     now <- getClockTime
@@ -38,18 +39,23 @@ sendEmail sender
                 Date nowCT
             ]
             content
-    addrs <- getAddrInfo Nothing (Just $ show smtpServer) Nothing
+    addrs <- getAddrInfo Nothing (Just smtpServer') Nothing
     let SockAddrInet _ hostAddr = addrAddress (head addrs)
         sockAddr = SockAddrInet 25 hostAddr
     sentRef <- newIORef []
-    sendSMTP (Just sentRef) (show myDomain) sockAddr [message]
+    sendSMTP (Just sentRef) (myDomain') sockAddr [message]
     return ()
   where
-    recipients'  = map ((toName . (\x -> ("", x))) . show) recipients
-    sender'      = [toName ("", show sender)]
+    myDomain'    = sqt myDomain
+    recipients'  = map (toName . ( \(Email x) -> ("", sqt x))) recipients
+    sender'      = [toName ("", sqt sender)]
+    smtpServer'  = sqt smtpServer
     toName (n,e) = NameAddr (Just n) e
 
 -- | Remote outmost double quotes from a string
+sqt::T.Text -> String
+sqt = sq . show
+
 sq::String -> String
 sq ('"':s)  | last s == '"'  = init s
             | otherwise      = s
