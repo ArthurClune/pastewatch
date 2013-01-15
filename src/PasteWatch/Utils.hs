@@ -52,7 +52,7 @@ sendEmail (Email sender)
     smtpServer'  = sqt smtpServer
     toName (n,e) = NameAddr (Just n) e
 
--- | Remote outmost double quotes from a string
+-- | Remove outmost double quotes from a string
 sqt::T.Text -> String
 sqt = sq . show
 
