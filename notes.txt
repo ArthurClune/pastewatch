@@ -1,9 +1,4 @@
 
-cabal-dev install --dry-run -f -fastaes cprng-aes-0.3.1 crypto-random-api-0.1.0
-
-cabal-dev install yesod-platform
-
-
 MongoDB Schema
 
 
@@ -24,9 +19,3 @@ MongoDB
 http://docs.mongodb.org/manual/administration/security/
 
 Use 'auth' setting in /usr/local/etc/mongod.conf
-
-
-Yesod
-
-yesod devel --dev
-

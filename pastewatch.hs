@@ -165,7 +165,7 @@ sendJobs sitet links = do
 -- | Loop forever, pulling the new pastes for a give site and
 -- putting into the queue for other threads to pick up
 -- Some sites firewall us after too many requests, so if we get an error,
--- wait ~30 minutes then try again
+-- wait then try again
 controlThread::Site -> Control ()
 controlThread sitet = forever $ do
     dtime <- asks delayTime
