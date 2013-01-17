@@ -35,22 +35,24 @@ import PasteWatch.Types
 -- Low level functions
 ---------------------------------------------------
 
-storeInDB::URL -> MatchText -> PasteContents -> Worker ()
-storeInDB (URL url) (MatchText match) (PasteContents content) = do
-    conf <- get
-    ts   <- liftIO Time.getCurrentTime
-    let run = DB.access (dbPipe conf) DB.master (db conf)
-    let paste = ["schemaVer" =: (1::Int),
-                 "ts"        =: ts,
-                 "url"       =: url,
-                 "content"   =: content,
-                 "tags"      =: [match],
-                 "alertedOn" =: match
-                ]
-    liftIO $ do
-        putStrLn $ "Writing to DB: URL " ++ show url ++ " matches " ++ show match
-        _ <- run $ DB.insert "pastes" paste
-        return ()
+storeInDB::Site -> URL -> MatchText -> PasteContents -> Worker ()
+storeInDB site (URL url) (MatchText match) (PasteContents content) =
+    do
+        conf <- get
+        ts   <- liftIO Time.getCurrentTime
+        let run = DB.access (dbPipe conf) DB.master (db conf)
+        let paste = ["schemaVer" =: (1::Int),
+                     "ts"        =: ts,
+                     "url"       =: url,
+                     "content"   =: content,
+                     "tags"      =: [match],
+                     "alertedOn" =: match,
+                     "site"      =: show site
+                    ]
+        liftIO $ do
+            putStrLn $ "Writing to DB: URL " ++ show url ++ " matches " ++ show match
+            _ <- run $ DB.insert "pastes" paste
+            return ()
 
 ---------------------------------------------------
 -- Functions to maintain our map of urls and time
@@ -128,7 +130,7 @@ checkone = forever $ do
                 SUCCESS  -> error "Bad error result code in checkone"
             Right (match, content) -> do
                 liftIO . atomically $ writeTChan rq SUCCESS
-                storeInDB url match content
+                storeInDB (site job) url match content
   where
     writeResult rq code = liftIO . atomically $ writeTChan rq code
 

@@ -6,11 +6,12 @@ MongoDB Schema
 Paste => {
     'schemaVer': Int,
     'downloadTime': ts,
-    'URL': URL,
+    'url': URL,
     'site': Site,
     'content': Text,
     'tags': list of tags
     'alertedOn': string alerted on
+    'site' : pastesite
 }
 
 
@@ -19,3 +20,6 @@ MongoDB
 http://docs.mongodb.org/manual/administration/security/
 
 Use 'auth' setting in /usr/local/etc/mongod.conf
+
+Add instance for (DB.Val ..) for all data in DB
+
