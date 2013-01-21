@@ -177,7 +177,7 @@ controlThread sitet = forever $ do
   where
     getURLs = do
         etime <- asks errorTime
-        urls <- runEitherT $ tryIO $ getNewPastes sitet
+        urls  <- runEitherT $ tryIO $ getNewPastes sitet
         case urls of
             Left _  -> liftIO $ threadDelay (etime * 1000000)
             Right u -> filterM notSeenURL u >>= sendJobs sitet
