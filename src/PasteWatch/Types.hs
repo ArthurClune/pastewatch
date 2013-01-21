@@ -85,7 +85,7 @@ newtype PasteContents = PasteContents T.Text deriving (Eq, Generic, IsString, Sh
 instance NFData PasteContents where rnf = genericRnf
 
 -- | Custom results when getting paste
-data ResultCode = SUCCESS | NO_MATCH | FAILED | RETRY deriving (Enum, Eq, Generic, Show)
+data ResultCode = DB_ERR | FAILED | NO_MATCH | RETRY | SUCCESS deriving (Enum, Eq, Generic, Show)
 
 instance NFData ResultCode where rnf = genericRnf
 
@@ -222,15 +222,17 @@ data WorkerState = WorkerState {
 
 -- | All the per-site EKG Counters
 data Counters = Counters {
+    -- | Total number of DB errors of any kind
+    dbErrors :: !Counter,
     -- | Total number of URLs successfully tested
-    tested  :: !Counter,
+    tested   :: !Counter,
     -- | Total number of URLs that have matched an alert
-    matched :: !Counter,
+    matched  :: !Counter,
     -- | Total number of retries. Multiple retries of the same
     -- url count on each retry
-    retries :: !Counter,
+    retries  :: !Counter,
     -- | Total number of failed URLs (404 errors etc)
-    failed  :: !Counter
+    failed   :: !Counter
 }
 
 -- | A Task is a URL to check

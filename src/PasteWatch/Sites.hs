@@ -93,12 +93,10 @@ doCheck'::IOSLA (XIOState ()) (NTree XNode) (NTree XNode)
         -> (PasteContents->Maybe MatchText)
         -> IO (Either ResultCode (MatchText, PasteContents))
 doCheck' cssfunc url contentMatch  = do
-    res <- runEitherT $ tryIO $ fetchURL url
+    res <- fetchURL url
     case res of
-        Left _ -> return $! Left FAILED
-        Right resp -> case resp of
-          Left  a   -> return $! Left a
-          Right doc -> extractContent doc
+        Left  e   -> return $! Left e
+        Right doc -> extractContent doc
   where
     extractContent doc = do
         content <- runX . xshow $ doc >>> cssfunc >>> deep isText
@@ -109,11 +107,13 @@ doCheck' cssfunc url contentMatch  = do
 
 fetchURL::URL -> IO (Either ResultCode (IOSArrow XmlTree (NTree XNode)))
 fetchURL (URL url) = do
-    resp <- simpleHTTP $ getRequest $ T.unpack url
+    resp <- runEitherT $ tryIO $ simpleHTTP $ getRequest $ T.unpack url
     case resp of
         Left _  -> return $ Left FAILED
-        Right r -> case rspCode r of
-            (2, 0, 0) -> return $ Right $ parseHtml (rspBody r)
+        Right r -> case r of
+          Left _ -> return $ Left FAILED
+          Right r' -> case rspCode r' of
+            (2, 0, 0) -> return $ Right $ parseHtml (rspBody r')
             (4, 0, 8) -> return $ Left RETRY
             (5, _, _) -> return $ Left RETRY
             _         -> return $ Left FAILED
@@ -122,10 +122,10 @@ fetchURL (URL url) = do
 -- | Generate the Counters for a given site
 createCounters::Server -> Site -> IO Counters
 createCounters srv sitet = do
-     [c1, c2, c3, c4] <- mapM counterf counterLabels
-     return $ Counters c1 c2 c3 c4
+     [c1, c2, c3, c4, c5] <- mapM counterf counterLabels
+     return $ Counters c1 c2 c3 c4 c5
   where
-    counterLabels = ["Tested", "Matched", "Retries", "Failed"]
+    counterLabels = ["dbErrors", "Failed", "Matched", "Retries", "Tested"]
     counterf = (`getCounter` srv) . T.pack . (prefix ++)
     prefix = (sq . show $ sitet) ++ " "
 

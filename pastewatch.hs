@@ -1,7 +1,9 @@
-{-# LANGUAGE NamedFieldPuns, OverloadedStrings #-}
+{-# LANGUAGE NamedFieldPuns, OverloadedStrings, ScopedTypeVariables #-}
 
 -- | Check paste sites (as defined in PasteWatch.Sites) for content matching
 -- given strings
+
+import           Prelude hiding (catch)
 
 import           Control.Concurrent         (forkIO, threadDelay, ThreadId)
 import           Control.Concurrent.STM
@@ -19,6 +21,7 @@ import           Data.Time.LocalTime        (getZonedTime)
 import qualified Database.MongoDB as DB
 import           Database.MongoDB           ( (=:) )
 import           GHC.Conc                   (numCapabilities)
+import           System.Exit                (exitWith, ExitCode(..))
 import           System.Locale              (defaultTimeLocale)
 import           System.Random
 import qualified System.Remote.Counter as SRC
@@ -35,7 +38,7 @@ import PasteWatch.Types
 -- Low level functions
 ---------------------------------------------------
 
-storeInDB::Site -> URL -> MatchText -> PasteContents -> Worker ()
+storeInDB::Site -> URL -> MatchText -> PasteContents -> Worker (Either DB.Failure DB.Value)
 storeInDB site (URL url) (MatchText match) (PasteContents content) =
     do
         conf <- get
@@ -51,8 +54,7 @@ storeInDB site (URL url) (MatchText match) (PasteContents content) =
                     ]
         liftIO $ do
             putStrLn $ "Writing to DB: URL " ++ show url ++ " matches " ++ show match
-            _ <- run $ DB.insert "pastes" paste
-            return ()
+            run $ DB.insert "pastes" paste
 
 ---------------------------------------------------
 -- Functions to maintain our map of urls and time
@@ -115,24 +117,22 @@ checkone::Worker ()
 checkone = forever $ do
     st  <- get
     job <- liftIO $ atomically $ readTChan (jobsQueue st)
-    let rq = rStatus job
     let url = paste job
+    let writeResult = writeResult' (rStatus job)
     pause
     liftIO $ putStrLn $ "Checking " ++ show url
-    result <- runEitherT $ tryIO $ doCheck (site job) url (checkFunction st)
+    result <- liftIO $ doCheck (site job) url (checkFunction st)
     case result of
-        Left _  -> writeResult rq FAILED
-        Right r -> case r of
-            Left e -> case e of
-                RETRY    -> reschedule job
-                FAILED   -> writeResult rq FAILED
-                NO_MATCH -> writeResult rq NO_MATCH
-                SUCCESS  -> error "Bad error result code in checkone"
-            Right (match, content) -> do
-                liftIO . atomically $ writeTChan rq SUCCESS
-                storeInDB (site job) url match content
+        Left RETRY    -> reschedule job
+        Left NO_MATCH -> writeResult NO_MATCH
+        Left _        -> writeResult FAILED
+        Right (match, content) -> do
+            dbres <- storeInDB (site job) url match content
+            case dbres of
+                Left _  -> writeResult DB_ERR
+                Right _ -> writeResult SUCCESS
   where
-    writeResult rq code = liftIO . atomically $ writeTChan rq code
+    writeResult' rq code = liftIO . atomically $ writeTChan rq code
 
 -- | Put task back on a queue for later
 -- unless we've already seen it 5 times
@@ -184,7 +184,7 @@ controlThread sitet = forever $ do
 
 -- | Update the counters for this site
 counterThread::TChan ResultCode -> Counters -> IO ()
-counterThread chan (Counters {tested, matched, retries, failed}) =
+counterThread chan (Counters {dbErrors, tested, matched, retries, failed}) =
     forever $ do
         result <- atomically $ readTChan chan
         case result of
@@ -194,6 +194,7 @@ counterThread chan (Counters {tested, matched, retries, failed}) =
             RETRY    -> SRC.inc retries
             NO_MATCH -> SRC.inc tested
             FAILED   -> SRC.inc failed
+            DB_ERR   -> SRC.inc dbErrors
 
 -- | spawn the control thread for a given site
 spawnControlThread::Server -> TChan Task -> Site -> IO ThreadId
@@ -232,12 +233,20 @@ main = do
     seed   <- newStdGen
     ekg    <- forkServer "localhost" 8000
     setLabels ekg
-    dbPipe <- DB.runIOE $ DB.connect $ dbHost config
+    dbPipe <- dbConnect $ dbHost config
     let seeds = randomlist (nthreads config) seed
     mapM_ (spawnWorkerThread jobs config dbPipe) seeds
     mapM_ (spawnControlThread ekg jobs) [minBound .. maxBound]
     forever $ threadDelay (360000 * 1000000)
   where
+    dbConnect host = do
+        r <- runEitherT $ scriptIO $ DB.runIOE $ DB.connect host
+        case r of
+            Left  e -> do
+                putStrLn $ "Database connection error: " ++ show e
+                exitWith (ExitFailure 1)
+            Right c -> return c
+
     randomlist n = take n . unfoldr (Just . random)
     setLabels ekg = do
         stLabel <- getLabel "Start time" ekg
