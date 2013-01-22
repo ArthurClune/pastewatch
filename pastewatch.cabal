@@ -15,7 +15,7 @@ source-repository head
 
 executable pastewatch
   default-language:    Haskell2010
-  ghc-options:         -Wall -threaded -rtsopts -O2
+  ghc-options:         -Wall -threaded -rtsopts -O2 -funbox-strict-fields
   main-is:             pastewatch.hs
   build-depends:       base ==4.5.*, bytestring, deepseq, ekg, errors, mongoDB, mtl,
                        old-locale, parallel-io, pastewatch,random, safe, stm,
@@ -30,7 +30,7 @@ Library
     Build-depends:    attoparsec, base, bytestring, configurator, deepseq, deepseq-generics,
                       ekg, errors, ghc-prim, HandsomeSoup, hashable<1.2.0.0, HTTP, hxt, mongoDB, mtl,
                       network, old-time, random, safe, SMTPClient, stm, text, time, transformers, unordered-containers
-    ghc-options:      -Wall -O2
+    ghc-options:      -Wall -O2 -funbox-strict-fields
 
 Test-suite pastewatch-tests
   Type:              exitcode-stdio-1.0
