@@ -142,29 +142,31 @@ data UserConfig = UserConfig {
     alertStrings   :: ![T.Text],
     -- | Strings to alert on (case insensitive) if seen in a paste
     alertStringsCI :: ![T.Text],
+    -- | Hostname of mongoDB server
+    dbHost         :: !DB.Host,
+    -- | dbName
+    dbName         :: !DB.Database,
      -- | Domain that email comes from
     domain         :: !Domain,
+    -- | Should we log to the DB
+    logToDB        :: !Bool,
+    -- | Should we send email alerts?
+    logToEmail     :: !Bool,
     -- | Number of Haskell (lightweight) threads to use
     -- for downloading. Total number of threads used
-    -- equals nthreads + number of sites + 1
-    -- N of these are mapped onto M OS threads where M is set
-    -- by the +RTS -N option (see README.md)
-    nthreads       :: !Int,
+    -- equals nthreads + (2 * number of sites) + 1
+    nthreads        :: !Int,
     -- | We wait for a random number between 0 and pauseMax seconds before
     -- downloading the URL
     -- Use this to stop sites blocking downloads due to too many requests in too short
     -- a time period
-    pauseMax      :: !Int,
+    pauseMax        :: !Int,
     -- | Send alert emails to?
-    recipients    :: ![Email],
+    recipients       :: ![Email],
     -- | Send alert emails as?
-    sender        :: !Email,
+    sender           :: !Email,
     -- | SMTP server to use to send email via
-    smtpServer    :: !Host,
-    -- | Hostname of mongoDB server
-    dbHost        :: !DB.Host,
-    -- | dbName
-    dbName        :: !DB.Database
+    smtpServer       :: !Host
 }
 
 --------------------------------------------------------------
@@ -216,7 +218,7 @@ data WorkerState = WorkerState {
   -- | Random number generator for each thread
   randGen       :: StdGen,
   -- | DB connection
-  dbPipe        :: DB.Pipe,
+  dbPipe        :: Maybe DB.Pipe,
   db            :: DB.Database
 }
 

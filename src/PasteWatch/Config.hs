@@ -31,20 +31,22 @@ parseArgs = do
 -- | Parse config file
 parseConfig::FilePath -> IO UserConfig
 parseConfig file = do
-  c <- runEitherT $ tryIO $ load [Required file]
+  c <- runEitherT $ scriptIO $ load [Required file]
   case c of
-    Left _ -> do
-        putStrLn "Error loading config file"
-        exitFailure
+    Left c' -> do
+        putStrLn $ "Error loading config file: " ++  c'
+        exitWith (ExitFailure 1)
     Right c' ->
         UserConfig <$> require c' "alertStrings"
                      <*> require c' "alertStringsCI"
+                     <*> require c' "dbHost"
+                     <*> require c' "dbName"
                      <*> require c' "domain"
+                     <*> require c' "logToDB"
+                     <*> require c' "logToEmail"
                      <*> require c' "nthreads"
                      <*> require c' "pauseMax"
                      <*> require c' "recipients"
                      <*> require c' "sender"
                      <*> require c' "smtpServer"
-                     <*> require c' "dbHost"
-                     <*> require c' "dbName"
 

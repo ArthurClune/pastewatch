@@ -25,6 +25,16 @@ Monitoring is available on http://localhost:8000
 
 This is currently not authenticated - set firewall rules suitably!
 
+
+Database Support
+----------------
+
+Experimental DB support for MongoDB.
+
+Run MongoDB on the same host as this script with no auth to play.
+
+This is not suitable for real use yet. The schema will change, there are no indexes etc.
+
 Extras
 ------
 

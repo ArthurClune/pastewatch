@@ -33,17 +33,33 @@ import PasteWatch.Alert  (checkContent)
 import PasteWatch.Config (parseArgs, parseConfig)
 import PasteWatch.Sites  (createCounters, createGauges, doCheck, getNewPastes, siteConfigs)
 import PasteWatch.Types
+import PasteWatch.Utils  (sendEmail)
 
 ---------------------------------------------------
 -- Low level functions
 ---------------------------------------------------
 
-storeInDB::Site -> URL -> MatchText -> PasteContents -> Worker (Either DB.Failure DB.Value)
-storeInDB site (URL url) (MatchText match) (PasteContents content) =
+-- | email the admins
+emailFile::Bool -> URL -> MatchText -> PasteContents -> Worker ()
+emailFile False _ _ _ = return ()
+emailFile True url match content = do
+    conf <- ask
+    liftIO $ do
+        putStrLn $ "Alerting: URL " ++ show url ++ " matches " ++ show match
+        sendEmail (sender conf)
+               (recipients conf)
+               (domain conf)
+               (smtpServer conf)
+               ("Pastebin alert. Match on " ++ show match)
+               (show url ++ "\n\n" ++ show content)
+
+storeInDB::Bool -> Site -> URL -> MatchText -> PasteContents -> Worker (Either DB.Failure DB.Value)
+storeInDB False _ _ _ _ = return (Right undefined)
+storeInDB True site (URL url) (MatchText match) (PasteContents content) =
     do
         conf <- get
         ts   <- liftIO Time.getCurrentTime
-        let run = DB.access (dbPipe conf) DB.master (db conf)
+        let run = DB.access (fromJust $ dbPipe conf) DB.master (db conf)
         let paste = ["schemaVer" =: (1::Int),
                      "ts"        =: ts,
                      "url"       =: url,
@@ -115,8 +131,9 @@ pause = do
 -- random time before starting
 checkone::Worker ()
 checkone = forever $ do
-    st  <- get
-    job <- liftIO $ atomically $ readTChan (jobsQueue st)
+    st   <- get
+    conf <- ask
+    job  <- liftIO $ atomically $ readTChan (jobsQueue st)
     let url = paste job
     let writeResult = writeResult' (rStatus job)
     pause
@@ -127,10 +144,12 @@ checkone = forever $ do
         Left NO_MATCH -> writeResult NO_MATCH
         Left _        -> writeResult FAILED
         Right (match, content) -> do
-            dbres <- storeInDB (site job) url match content
+            writeResult SUCCESS
+            emailFile (logToEmail conf) url match content
+            dbres <- storeInDB (logToDB conf) (site job) url match content
             case dbres of
                 Left _  -> writeResult DB_ERR
-                Right _ -> writeResult SUCCESS
+                Right _ -> return ()
   where
     writeResult' rq code = liftIO . atomically $ writeTChan rq code
 
@@ -210,7 +229,7 @@ spawnControlThread ekg jobs sitet = do
 -- | Spawn set of worker threads
 spawnWorkerThread::TChan Task
                 -> UserConfig
-                -> DB.Pipe
+                -> Maybe DB.Pipe
                 -> Int
                 -> IO ThreadId
 spawnWorkerThread jobs conf dbPipe seed =
@@ -233,7 +252,7 @@ main = do
     seed   <- newStdGen
     ekg    <- forkServer "localhost" 8000
     setLabels ekg
-    dbPipe <- dbConnect $ dbHost config
+    dbPipe <- genDbPipe (logToDB config) (dbHost config)
     let seeds = randomlist (nthreads config) seed
     mapM_ (spawnWorkerThread jobs config dbPipe) seeds
     mapM_ (spawnControlThread ekg jobs) [minBound .. maxBound]
@@ -246,7 +265,10 @@ main = do
                 putStrLn $ "Database connection error: " ++ show e
                 exitWith (ExitFailure 1)
             Right c -> return c
-
+    genDbPipe True host = do
+                            p <- dbConnect host
+                            return (Just p)
+    genDbPipe False _   = return Nothing
     randomlist n = take n . unfoldr (Just . random)
     setLabels ekg = do
         stLabel <- getLabel "Start time" ekg
