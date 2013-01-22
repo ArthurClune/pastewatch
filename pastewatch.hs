@@ -11,6 +11,7 @@ import           Control.DeepSeq            ( ($!!) )
 import           Control.Error
 import           Control.Monad.Reader
 import           Control.Monad.State
+import qualified Data.Bson as Bson
 import qualified Data.HashMap.Strict as Map
 import           Data.List                  (unfoldr)
 import           Data.Maybe                 (fromJust)
@@ -54,7 +55,7 @@ emailFile True url match content = do
                (show url ++ "\n\n" ++ show content)
 
 storeInDB::Bool -> Site -> URL -> MatchText -> PasteContents -> Worker (Either DB.Failure DB.Value)
-storeInDB False _ _ _ _ = return (Right undefined)
+storeInDB False _ _ _ _ = return (Right $ Bson.String "logToDB is false")
 storeInDB True site (URL url) (MatchText match) (PasteContents content) =
     do
         conf <- get
