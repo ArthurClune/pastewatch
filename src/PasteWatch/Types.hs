@@ -5,7 +5,7 @@ module PasteWatch.Types
     (
         Control,
         ControlState(..),
-        Counters(..),
+        Counters,
         Domain(..),
         Email(..),
         Host(..),
@@ -21,6 +21,7 @@ module PasteWatch.Types
         Worker,
         WorkerState(..),
         execControl,
+        getCtr,
         runControl,
         execWorker,
         runWorker,
@@ -85,9 +86,15 @@ newtype PasteContents = PasteContents T.Text deriving (Eq, Generic, IsString, Sh
 instance NFData PasteContents where rnf = genericRnf
 
 -- | Custom results when getting paste
-data ResultCode = DB_ERR | FAILED | NO_MATCH | RETRY | SUCCESS deriving (Enum, Eq, Generic, Show)
+data ResultCode = DB_ERR | FAILED | RETRY | SUCCESS | TESTED deriving (Bounded, Enum, Eq, Generic, Show)
 
 instance NFData ResultCode where rnf = genericRnf
+
+-- | All the per-site EKG Counters
+type Counters = [Counter]
+
+getCtr::ResultCode -> Counters -> Counter
+getCtr rc ctrs = ctrs !! fromEnum rc
 
 -- | Simple type to store URLs
 newtype URL = URL T.Text deriving (Eq, Generic, Hashable, IsString, Show)
@@ -220,21 +227,6 @@ data WorkerState = WorkerState {
   -- | DB connection
   dbPipe        :: Maybe DB.Pipe,
   db            :: DB.Database
-}
-
--- | All the per-site EKG Counters
-data Counters = Counters {
-    -- | Total number of DB errors of any kind
-    dbErrors :: !Counter,
-    -- | Total number of URLs successfully tested
-    tested   :: !Counter,
-    -- | Total number of URLs that have matched an alert
-    matched  :: !Counter,
-    -- | Total number of retries. Multiple retries of the same
-    -- url count on each retry
-    retries  :: !Counter,
-    -- | Total number of failed URLs (404 errors etc)
-    failed   :: !Counter
 }
 
 -- | A Task is a URL to check

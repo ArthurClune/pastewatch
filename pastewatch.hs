@@ -134,15 +134,15 @@ checkone = forever $ do
     st   <- get
     conf <- ask
     job  <- liftIO $ atomically $ readTChan (jobsQueue st)
-    let url = paste job
-    let writeResult = writeResult' (rStatus job)
     pause
-    liftIO $ putStrLn $ "Checking " ++ show url
-    result <- liftIO $ doCheck (site job) url (checkFunction st)
+    let url = paste job
+    let writeResult mess = liftIO . atomically $ writeTChan (rStatus job) mess
+    result <- liftIO $ do
+        putStrLn $ "Checking " ++ show url
+        doCheck (site job) url (checkFunction st)
     case result of
-        Left RETRY    -> reschedule job
-        Left NO_MATCH -> writeResult NO_MATCH
-        Left _        -> writeResult FAILED
+        Left RETRY -> reschedule job
+        Left r     -> writeResult r
         Right (match, content) -> do
             writeResult SUCCESS
             emailFile (logToEmail conf) url match content
@@ -150,8 +150,6 @@ checkone = forever $ do
             case dbres of
                 Left _  -> writeResult DB_ERR
                 Right _ -> return ()
-  where
-    writeResult' rq code = liftIO . atomically $ writeTChan rq code
 
 -- | Put task back on a queue for later
 -- unless we've already seen it 5 times
@@ -203,17 +201,16 @@ controlThread sitet = forever $ do
 
 -- | Update the counters for this site
 counterThread::TChan ResultCode -> Counters -> IO ()
-counterThread chan (Counters {dbErrors, tested, matched, retries, failed}) =
+counterThread chan ctrs =
     forever $ do
         result <- atomically $ readTChan chan
         case result of
             SUCCESS  -> do
-                SRC.inc tested
-                SRC.inc matched
-            RETRY    -> SRC.inc retries
-            NO_MATCH -> SRC.inc tested
-            FAILED   -> SRC.inc failed
-            DB_ERR   -> SRC.inc dbErrors
+                incCtr SUCCESS
+                incCtr TESTED
+            x -> incCtr x
+  where
+    incCtr resultCode = SRC.inc (getCtr resultCode ctrs)
 
 -- | spawn the control thread for a given site
 spawnControlThread::Server -> TChan Task -> Site -> IO ThreadId
@@ -258,17 +255,6 @@ main = do
     mapM_ (spawnControlThread ekg jobs) [minBound .. maxBound]
     forever $ threadDelay (360000 * 1000000)
   where
-    dbConnect host = do
-        r <- runEitherT $ scriptIO $ DB.runIOE $ DB.connect host
-        case r of
-            Left  e -> do
-                putStrLn $ "Database connection error: " ++ show e
-                exitWith (ExitFailure 1)
-            Right c -> return c
-    genDbPipe True host = do
-                            p <- dbConnect host
-                            return (Just p)
-    genDbPipe False _   = return Nothing
     randomlist n = take n . unfoldr (Just . random)
     setLabels ekg = do
         stLabel <- getLabel "Start time" ekg
@@ -276,3 +262,14 @@ main = do
         startTime  <- getZonedTime
         SRL.set stLabel $ T.pack $ formatTime defaultTimeLocale "%c" startTime
         SRL.set paramLabel $ T.pack $ show numCapabilities
+    genDbPipe True host = do
+        p <- dbConnect host
+        return $ Just p
+    genDbPipe False _   = return Nothing
+    dbConnect host = do
+        r <- runEitherT $ scriptIO $ DB.runIOE $ DB.connect host
+        case r of
+            Left  e -> do
+                putStrLn $ "Database connection error: " ++ show e
+                exitWith (ExitFailure 1)
+            Right c -> return c

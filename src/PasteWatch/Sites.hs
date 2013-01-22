@@ -103,7 +103,7 @@ doCheck' cssfunc url contentMatch  = do
         let pastetxt = PasteContents $ T.pack $ head content in
           case contentMatch pastetxt of
               Just x  -> return $!! Right (x, pastetxt)
-              Nothing -> return $! Left NO_MATCH
+              Nothing -> return $! Left TESTED
 
 fetchURL::URL -> IO (Either ResultCode (IOSArrow XmlTree (NTree XNode)))
 fetchURL (URL url) = do
@@ -121,11 +121,9 @@ fetchURL (URL url) = do
 
 -- | Generate the Counters for a given site
 createCounters::Server -> Site -> IO Counters
-createCounters srv sitet = do
-     [c1, c2, c3, c4, c5] <- mapM counterf counterLabels
-     return $ Counters c1 c2 c3 c4 c5
+createCounters srv sitet =
+    mapM (counterf . show) ([minBound .. maxBound] :: [ResultCode])
   where
-    counterLabels = ["dbErrors", "Failed", "Matched", "Retries", "Tested"]
     counterf = (`getCounter` srv) . T.pack . (prefix ++)
     prefix = (sq . show $ sitet) ++ " "
 
