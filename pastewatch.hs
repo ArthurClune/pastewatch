@@ -41,22 +41,36 @@ import PasteWatch.Utils  (sendEmail)
 ---------------------------------------------------
 
 -- | email the admins
-emailFile::Bool -> URL -> MatchText -> PasteContents -> Worker ()
-emailFile False _ _ _ = return ()
-emailFile True url match content = do
+emailFile::Bool
+         -> ( ResultCode->IO ())
+         -> URL
+         -> MatchText
+         -> PasteContents
+         -> Worker ()
+emailFile False _ _ _ _ = return ()
+emailFile True sendResult url match content = do
     conf <- ask
     liftIO $ do
         putStrLn $ "Alerting: URL " ++ show url ++ " matches " ++ show match
-        sendEmail (sender conf)
+        res <- runEitherT $ tryIO $ sendEmail (sender conf)
                (recipients conf)
                (domain conf)
                (smtpServer conf)
                ("Pastebin alert. Match on " ++ show match)
                (show url ++ "\n\n" ++ show content)
+        case res of
+            Left  _ -> sendResult SMTP_ERR
+            Right _ -> return ()
 
-storeInDB::Bool -> Site -> URL -> MatchText -> PasteContents -> Worker (Either DB.Failure DB.Value)
-storeInDB False _ _ _ _ = return (Right $ Bson.String "logToDB is false")
-storeInDB True site (URL url) (MatchText match) (PasteContents content) =
+storeInDB::Bool
+         -> ( ResultCode->IO () )
+         -> Site
+         -> URL
+         -> MatchText
+         -> PasteContents
+         -> Worker ()
+storeInDB False _ _ _ _ _ = return ()
+storeInDB True sendResult site (URL url) (MatchText match) (PasteContents content) =
     do
         conf <- get
         ts   <- liftIO Time.getCurrentTime
@@ -71,7 +85,10 @@ storeInDB True site (URL url) (MatchText match) (PasteContents content) =
                     ]
         liftIO $ do
             putStrLn $ "Writing to DB: URL " ++ show url ++ " matches " ++ show match
-            run $ DB.insert "pastes" paste
+            res <- run $ DB.insert "pastes" paste
+            case res of
+                Left  _ -> sendResult DB_ERR
+                Right _ -> return ()
 
 ---------------------------------------------------
 -- Functions to maintain our map of urls and time
@@ -137,20 +154,17 @@ checkone = forever $ do
     job  <- liftIO $ atomically $ readTChan (jobsQueue st)
     pause
     let url = paste job
-    let writeResult mess = liftIO . atomically $ writeTChan (rStatus job) mess
+    let sendResult mess = liftIO . atomically $ writeTChan (rStatus job) mess
     result <- liftIO $ do
         putStrLn $ "Checking " ++ show url
         doCheck (site job) url (checkFunction st)
     case result of
         Left RETRY -> reschedule job
-        Left r     -> writeResult r
+        Left r     -> sendResult r
         Right (match, content) -> do
-            writeResult SUCCESS
-            emailFile (logToEmail conf) url match content
-            dbres <- storeInDB (logToDB conf) (site job) url match content
-            case dbres of
-                Left _  -> writeResult DB_ERR
-                Right _ -> return ()
+            sendResult SUCCESS
+            emailFile (logToEmail conf) sendResult url match content
+            storeInDB (logToDB conf) sendResult (site job) url match content
 
 -- | Put task back on a queue for later
 -- unless we've already seen it 5 times

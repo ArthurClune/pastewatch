@@ -86,7 +86,7 @@ newtype PasteContents = PasteContents T.Text deriving (Eq, Generic, IsString, Sh
 instance NFData PasteContents where rnf = genericRnf
 
 -- | Custom results when getting paste
-data ResultCode = DB_ERR | FAILED | RETRY | SUCCESS | TESTED deriving (Bounded, Enum, Eq, Generic, Show)
+data ResultCode = DB_ERR | FAILED | RETRY | SMTP_ERR | SUCCESS | TESTED deriving (Bounded, Enum, Eq, Generic, Show)
 
 instance NFData ResultCode where rnf = genericRnf
 
