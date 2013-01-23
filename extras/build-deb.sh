@@ -6,7 +6,7 @@ echo
 echo "This script requires fpm to run"
 echo "$ sudo apt-get install rubygems"
 echo "$ sudo gem install fpm"
-#exit 1
+exit 1
 
 VERSION=1.0
 
