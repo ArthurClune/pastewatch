@@ -1,7 +1,7 @@
 #!/bin/sh
 
-DAEMON=/opt/pastewatch/pastewatch
-DAEMON_OPTS="+RTS -N4 -T -RTS /etc/pastewatch.config"
+DAEMON=/usr/bin/pastewatch
+DAEMON_OPTS="+RTS -N2 -T -RTS /etc/pastewatch.config"
 
 case "$1" in
     start)

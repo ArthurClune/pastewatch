@@ -38,9 +38,9 @@ This is not suitable for real use yet. The schema will change, there are no inde
 Extras
 ------
 
-A Debian/Ubuntu init script is included in extras/
+A Debian/Ubuntu init script and a script to make a Debian/Ubuntu package are included in extras/
 
-A compiled tarball for Ubuntu 12.04 is available from http://clune.org/pastewatch.tgz. This will install to /opt/pastewatch and can be used with the init script in extras/
+A .deb for Ubuntu 12.04 is available from http://clune.org/pastewatch.deb
 
 Tests
 -----
