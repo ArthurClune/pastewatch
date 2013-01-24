@@ -1,6 +1,6 @@
 name:                pastewatch
 category:            web
-version:             0.1.0.1
+version:             1.0.1
 license:             GPL-3
 license-file:        license.txt
 description:         Code to watch paste sites and alert on pastes of interest

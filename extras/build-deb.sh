@@ -8,8 +8,6 @@ echo "$ sudo apt-get install rubygems"
 echo "$ sudo gem install fpm"
 exit 1
 
-VERSION=1.0
-
 rm pastewatch*deb
 
 
@@ -20,6 +18,7 @@ fi
 
 cd pastewatch
 git pull
+VERSION=`grep "^version:" pastewatch.cabal| awk '{split($0,a," "); print a[2]}' `
 # if you have installed and then removed the .deb, you may need this next line
 # to get a build next time
 #sudo cabal --reinstall --force-reinstall --datadir=/usr/share install ekg
