@@ -13,8 +13,8 @@ VERSION=1.0
 rm pastewatch*deb
 
 
-if [ ! -d pastewatch ]; 
-then 
+if [ ! -d pastewatch ];
+then
    git checkout https://github.com/ArthurClune/pastewatch.git
 fi
 
@@ -25,13 +25,17 @@ git pull
 #sudo cabal --reinstall --force-reinstall --datadir=/usr/share install ekg
 sudo cabal --datadir=/usr/share install
 sudo cp dist/build/pastewatch/pastewatch /usr/bin/pastewatch
-sudo cp sample.config /etc/pastewatch.config
+sudo cp sample.config /etc/pastewatch.conf
 sudo cp extras/ubuntu_init_script.sh /etc/init.d/pastewatch
 
 sudo rm -f /usr/share/ekg-*/assets/*
 sudo cp assets/ekg/assets/* /usr/share/ekg-*/assets/
 
 cd ..
-fakeroot fpm -s dir -t deb -n "pastewatch" -v $VERSION --license="GPLv3" --vendor="clune.org" --directories=/opt/pastewatch -m "arthur@clune.org" --description="Watch paste sites for interesting stuff" --url="https://github.com/ArthurClune/pastewatch"  /usr/bin/pastewatch /etc/init.d/pastewatch /etc/pastewatch.config /usr/share/ekg-*
+fakeroot fpm -s dir -t deb -n "pastewatch" -v $VERSION --license="GPLv3" --vendor="clune.org" -m "arthur@clune.org" \
+    --description="Watch paste sites for interesting stuff" \
+    --url="https://github.com/ArthurClune/pastewatch" \
+    --config-files=/etc/pastewatch.conf \
+    /usr/bin/pastewatch /etc/init.d/pastewatch /etc/pastewatch.conf /usr/share/ekg-*
 
 
