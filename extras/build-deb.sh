@@ -32,6 +32,6 @@ sudo rm -f /usr/share/ekg-*/assets/*
 sudo cp assets/ekg/assets/* /usr/share/ekg-*/assets/
 
 cd ..
-fpm -s dir -t deb -n "pastewatch" -v $VERSION --license="GPLv3" --vendor="clune.org" --directories=/opt/pastewatch -m "arthur@clune.org" --description="Watch paste sites for interesting stuff" --url="https://github.com/ArthurClune/pastewatch"  /usr/bin/pastewatch /etc/init.d/pastewatch /etc/pastewatch.config /usr/share/ekg-*
+fakeroot fpm -s dir -t deb -n "pastewatch" -v $VERSION --license="GPLv3" --vendor="clune.org" --directories=/opt/pastewatch -m "arthur@clune.org" --description="Watch paste sites for interesting stuff" --url="https://github.com/ArthurClune/pastewatch"  /usr/bin/pastewatch /etc/init.d/pastewatch /etc/pastewatch.config /usr/share/ekg-*
 
 
