@@ -15,7 +15,7 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin
 DESC="Description of the service"
 NAME=pastewatch
 DAEMON=/usr/bin/$NAME
-DAEMON_ARGS="+RTS -N2 -T -RTS /etc/pastewatch.config"
+DAEMON_ARGS="+RTS -N2 -T -RTS /etc/pastewatch.conf"
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
 [ -x "$DAEMON" ] || exit 0
