@@ -23,6 +23,10 @@ import           Database.MongoDB           ( (=:) )
 import           GHC.Conc                   (numCapabilities)
 import           System.Exit                (exitWith, ExitCode(..))
 import           System.Locale              (defaultTimeLocale)
+import           System.Log.Logger
+import           System.Log.Handler.Simple
+import           System.Log.Handler         (setFormatter)
+import           System.Log.Formatter
 import           System.Random
 import qualified System.Remote.Counter as SRC
 import qualified System.Remote.Gauge as SRG
@@ -50,7 +54,7 @@ emailFile False _ _ _ _ = return ()
 emailFile True sendResult url match content = do
     conf <- ask
     liftIO $ do
-        putStrLn $ "Alerting: URL " ++ show url ++ " matches " ++ show match
+        debugM "pastewatch.emailFile" $ "Alerting: URL " ++ show url ++ " matches " ++ show match
         res <- runEitherT $ tryIO $ sendEmail (sender conf)
                (recipients conf)
                (domain conf)
@@ -83,7 +87,7 @@ storeInDB True sendResult site (URL url) (MatchText match) (PasteContents conten
                      "site"      =: show site
                     ]
         liftIO $ do
-            putStrLn $ "Writing to DB: URL " ++ show url ++ " matches " ++ show match
+            debugM "pastewatch.storeInDB" $ "Writing to DB: URL " ++ show url ++ " matches " ++ show match
             res <- run $ DB.insert "pastes" paste
             case res of
                 Left  _ -> sendResult DB_ERR
@@ -155,7 +159,7 @@ checkone = forever $ do
     let url = paste job
     let sendResult mess = liftIO . atomically $ writeTChan (rStatus job) mess
     result <- liftIO $ do
-        putStrLn $ "Checking " ++ show url
+        debugM "pastewatch.checkone" $ "Checking " ++ show url
         doCheck (site job) url (checkFunction st)
     case result of
         Left RETRY -> reschedule job
@@ -169,7 +173,7 @@ checkone = forever $ do
 -- unless we've already seen it 5 times
 reschedule::Task -> Worker ()
 reschedule job = do
-    liftIO $ putStrLn $ "Rescheduling " ++ show (paste job)
+    liftIO $ debugM "pastewatch.reschedule" $ "Rescheduling " ++ show (paste job)
     chan  <- gets jobsQueue
     liftIO . atomically $ writeTChan (rStatus job) RETRY
     liftIO $ unless (ntimes' > 5) $ do
@@ -257,6 +261,9 @@ spawnWorkerThread jobs conf dbPipe seed =
 ---------------------------------------------------
 main :: IO ()
 main = do
+    h <- getRootLogger
+    let ha = setFormatter h (simpleLogFormatter "[$time : $loggername : $prio] $msg")
+    updateGlobalLogger "MyApp.BuggyComponent" (setHandlers [ha])
     file   <- parseArgs
     config <- parseConfig file
     jobs   <- newTChanIO
@@ -265,21 +272,13 @@ main = do
     setLabels ekg
     dbPipe <- genDbPipe (logToDB config) (dbHost config)
     let seeds = randomlist (nthreads config) seed
+    setUpLogging (debugging config)
+    debugM "pastewatch.main" "Starting"
     mapM_ (spawnWorkerThread jobs config dbPipe) seeds
     mapM_ (spawnControlThread ekg jobs) [minBound .. maxBound]
     forever $ threadDelay (360000 * 1000000)
   where
-    randomlist n = take n . unfoldr (Just . random)
-    setLabels ekg = do
-        stLabel <- getLabel "Start time" ekg
-        paramLabel <- getLabel "# cores" ekg
-        startTime  <- getZonedTime
-        SRL.set stLabel $ T.pack $ formatTime defaultTimeLocale "%c" startTime
-        SRL.set paramLabel $ T.pack $ show numCapabilities
-    genDbPipe True host = do
-        p <- dbConnect host
-        return $ Just p
-    genDbPipe False _   = return Nothing
+
     dbConnect host = do
         r <- runEitherT $ scriptIO $ DB.runIOE $ DB.connect host
         case r of
@@ -287,3 +286,20 @@ main = do
                 putStrLn $ "Database connection error: " ++ show e
                 exitWith (ExitFailure 1)
             Right c -> return c
+
+    genDbPipe True host = do
+        p <- dbConnect host
+        return $ Just p
+    genDbPipe False _   = return Nothing
+
+    randomlist n = take n . unfoldr (Just . random)
+
+    setLabels ekg = do
+        stLabel <- getLabel "Start time" ekg
+        paramLabel <- getLabel "# cores" ekg
+        startTime  <- getZonedTime
+        SRL.set stLabel $ T.pack $ formatTime defaultTimeLocale "%c" startTime
+        SRL.set paramLabel $ T.pack $ show numCapabilities
+
+    setUpLogging True = updateGlobalLogger "pastewatch" (setLevel DEBUG)
+    setUpLogging False = return ()

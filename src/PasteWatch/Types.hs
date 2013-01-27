@@ -153,7 +153,9 @@ data UserConfig = UserConfig {
     dbHost         :: !DB.Host,
     -- | dbName
     dbName         :: !DB.Database,
-     -- | Domain that email comes from
+    -- | Print debug messages?
+    debugging      :: !Bool,
+    -- | Domain that email comes from
     domain         :: !Domain,
     -- | Should we log to the DB
     logToDB        :: !Bool,
