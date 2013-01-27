@@ -40,7 +40,14 @@ Extras
 
 A Debian/Ubuntu init script and a script to make a Debian/Ubuntu package are included in extras/
 
-A .deb for Ubuntu 12.04 is available from http://clune.org/pastewatch.deb
+A .deb for Ubuntu 12.04 is available from http://clune.org/pastewatch.deb To use:
+```
+# dpkg -i pastewatch.deb
+```
+Edit /etc/pastewatch.conf to taste and then run
+```
+/etc/init.d/pastewatch start
+```
 
 Tests
 -----
