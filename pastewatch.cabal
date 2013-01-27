@@ -17,12 +17,10 @@ executable pastewatch
   default-language:    Haskell2010
   ghc-options:         -Wall -threaded -rtsopts -O2 -funbox-strict-fields
   main-is:             pastewatch.hs
-  build-depends:       base ==4.5.*, bytestring, deepseq, ekg, errors, hslogger, mongoDB, mtl,
-                       old-locale, parallel-io, pastewatch,random, safe, stm,
-                       text, time, transformers, unordered-containers
+  build-depends:       base ==4.5.*, pastewatch
 
 Library
-    Exposed-Modules:  PasteWatch.Alert, PasteWatch.Config,
+    Exposed-Modules:  PasteWatch.Alert, PasteWatch.Config, PasteWatch.Core,
                       PasteWatch.Sites, PasteWatch.Types,
                       PasteWatch.Utils
     hs-source-dirs:   src
@@ -30,7 +28,8 @@ Library
     Build-depends:    attoparsec, base, bytestring, configurator, deepseq, deepseq-generics,
                       ekg, errors, ghc-prim, HandsomeSoup, hashable,
                       hashable-generics, hslogger, HTTP,
-                      hxt, mongoDB, mtl, network, old-time, random, safe, SMTPClient,
+                      hxt, mongoDB, mtl, network,  old-locale, old-time, parallel-io,
+                      random, safe, stm, SMTPClient,
                       stm, text, time, transformers, unordered-containers
     ghc-options:      -Wall -O2 -funbox-strict-fields
 
