@@ -122,8 +122,11 @@ instance DCT.Configured DB.Host where
 data Site = Pastebin | Pastie | SkidPaste | Slexy | Snipt
                 deriving (Bounded, Enum, Eq, Generic, Show)
 
+-- No ETA reduce on this instance. See
+-- http://hackage.haskell.org/packages/archive/hashable-generics/1.1.8/doc/html/Data-Hashable-Generic.html
 instance Hashable Site where
     hashWithSalt s x  = gHashWithSalt s x
+    {-# INLINEABLE hashWithSalt #-}
 
 instance NFData Site where rnf = genericRnf
 
