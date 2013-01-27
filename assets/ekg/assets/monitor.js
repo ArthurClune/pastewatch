@@ -1,6 +1,22 @@
 $(document).ready(function () {
     "use strict";
 
+    // Return dict sorted by keys
+    // http://stackoverflow.com/a/10946984/923698
+    function sortOnKeys(dict) {
+        var sorted = [];
+        for(var key in dict) {
+            sorted[sorted.length] = key;
+        }
+        sorted.sort();
+        var tempDict = {};
+        for(var i = 0; i < sorted.length; i++) {
+            tempDict[sorted[i]] = dict[sorted[i]];
+        }
+        return tempDict;
+    }
+
+
     // Number formatters
     function commaify(n)
     {
@@ -340,7 +356,7 @@ $(document).ready(function () {
         addCounter($("#allocation-rate"), allocation_rate, formatRate);
 
         addDynamicCounters($("#counter-table"), function (stats) {
-            return stats.counters;
+            return sortOnKeys(stats.counters);
         }, function (key, stats, time, prev_stats, prev_time) {
             if (prev_stats == undefined)
                 return null;
@@ -351,7 +367,7 @@ $(document).ready(function () {
         });
 
         addDynamicCounters($("#gauge-table"), function (stats) {
-            return stats.gauges;
+            return sortOnKeys(stats.gauges);
         }, function (key, stats, time) {
             return stats.gauges[key];
         }, function (label) {
@@ -359,7 +375,7 @@ $(document).ready(function () {
         });
 
         addDynamicLabels($("#label-table"), function (stats) {
-            return stats.labels;
+            return sortOnKeys(stats.labels);
         });
     }
 
