@@ -261,9 +261,9 @@ spawnWorkerThread jobs conf dbPipe seed =
 ---------------------------------------------------
 main :: IO ()
 main = do
-    h <- getRootLogger
-    let ha = setFormatter h (simpleLogFormatter "[$time : $loggername : $prio] $msg")
-    updateGlobalLogger "MyApp.BuggyComponent" (setHandlers [ha])
+    --h <- getRootLogger
+    --let ha = setFormatter h (simpleLogFormatter "[$time : $loggername : $prio] $msg")
+    --updateGlobalLogger "MyApp.BuggyComponent" (setHandlers [ha])
     file   <- parseArgs
     config <- parseConfig file
     jobs   <- newTChanIO

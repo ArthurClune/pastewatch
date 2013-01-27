@@ -34,6 +34,7 @@ import           Control.Monad.Reader
 import           Control.Monad.State
 import qualified Data.Configurator.Types as DCT
 import           Data.Hashable
+import           Data.Hashable.Generic (gHashWithSalt)
 import qualified Data.HashMap.Strict as Map
 import qualified Data.Text as T
 import qualified Data.Time.Clock as Time
@@ -122,7 +123,7 @@ data Site = Pastebin | Pastie | SkidPaste | Slexy | Snipt
                 deriving (Bounded, Enum, Eq, Generic, Show)
 
 instance Hashable Site where
-    hash = fromEnum
+    hashWithSalt s x  = gHashWithSalt s x
 
 instance NFData Site where rnf = genericRnf
 

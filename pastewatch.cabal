@@ -28,8 +28,10 @@ Library
     hs-source-dirs:   src
     default-language: Haskell98
     Build-depends:    attoparsec, base, bytestring, configurator, deepseq, deepseq-generics,
-                      ekg, errors, ghc-prim, HandsomeSoup, hashable<1.2.0.0, HTTP, hxt, mongoDB, mtl,
-                      network, old-time, random, safe, SMTPClient, stm, text, time, transformers, unordered-containers
+                      ekg, errors, ghc-prim, HandsomeSoup, hashable,
+                      hashable-generics, hslogger, HTTP,
+                      hxt, mongoDB, mtl, network, old-time, random, safe, SMTPClient,
+                      stm, text, time, transformers, unordered-containers
     ghc-options:      -Wall -O2 -funbox-strict-fields
 
 Test-suite pastewatch-tests
