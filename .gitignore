@@ -3,3 +3,4 @@ dist
 output
 dist_*
 cabal-dev
+db.config
