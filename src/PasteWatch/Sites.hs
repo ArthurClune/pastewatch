@@ -19,6 +19,7 @@ import qualified Data.HashMap.Strict as Map
 import qualified Data.Text as T
 import           Data.Tree.NTree.TypeDefs
 import           Network.HTTP
+import           System.Log.Logger
 import           System.Remote.Gauge        (Gauge)
 import           System.Remote.Monitoring   (getCounter, getGauge, Server)
 import           Text.HandsomeSoup          ((!), css, parseHtml, fromUrl)
@@ -109,9 +110,13 @@ fetchURL::URL -> IO (Either ResultCode (IOSArrow XmlTree (NTree XNode)))
 fetchURL (URL url) = do
     resp <- runEitherT $ tryIO $ simpleHTTP $ getRequest $ T.unpack url
     case resp of
-        Left _  -> return $ Left FAILED
+        Left  e -> do
+                    errorM "pastewatch.fetchURL" $ "Error retrieving paste " ++ show e
+                    return $ Left FAILED
         Right r -> case r of
-          Left _ -> return $ Left FAILED
+          Left e -> do
+                      errorM "pastewatch.fetchURL" $ "Error retrieving paste " ++ show e
+                      return $ Left FAILED
           Right r' -> case rspCode r' of
             (2, 0, 0) -> return $ Right $ parseHtml (rspBody r')
             (4, 0, 8) -> return $ Left RETRY

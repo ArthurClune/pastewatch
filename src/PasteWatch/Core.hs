@@ -11,6 +11,7 @@ import           Prelude hiding (catch)
 
 import           Control.Concurrent         (forkIO, threadDelay, ThreadId)
 import           Control.Concurrent.STM
+import           Control.Concurrent.STM.TMVar
 import           Control.DeepSeq            ( ($!!) )
 import           Control.Error
 import           Control.Monad.Reader
@@ -49,6 +50,7 @@ import PasteWatch.Utils  (sendEmail)
 ---------------------------------------------------
 
 -- | email the admins
+-- If we get an error, just throw away this message, report the error and keep going
 emailFile::Bool
          -> ( ResultCode->IO () )
          -> URL
@@ -67,9 +69,13 @@ emailFile True sendResult url match content = do
                ("Pastebin alert. Match on " ++ show match)
                (show url ++ "\n\n" ++ show content)
         case res of
-            Left  _ -> sendResult SMTP_ERR
+            Left  e -> do
+                        errorM "pastewatch.emailFile" $ "Error sending email " ++ show e
+                        sendResult SMTP_ERR
             Right _ -> return ()
 
+-- | Store matching paste in DB
+-- If we get a DB error, kill the program
 storeInDB::Bool
          -> ( ResultCode->IO () )
          -> Site
@@ -95,7 +101,10 @@ storeInDB True sendResult site (URL url) (MatchText match) (PasteContents conten
             infoM "pastewatch.storeInDB" $ show url ++ " matches " ++ show match
             res <- run $ DB.insert "pastes" paste
             case res of
-                Left  _ -> sendResult DB_ERR
+                Left  e -> do
+                            errorM "pastewatch.storeInDB" $ "Error storing in DB " ++ show e
+                            sendResult DB_ERR
+                            atomically $ putTMVar (criticalError conf) True
                 Right _ -> return ()
 
 ---------------------------------------------------
@@ -219,7 +228,10 @@ controlThread sitet = forever $ do
         etime <- asks errorTime
         urls  <- runEitherT $ tryIO $ getNewPastes sitet
         case urls of
-            Left _  -> liftIO $ threadDelay (etime * 1000000)
+            Left  e -> liftIO $ do
+                                errorM "pastewatch.controlThread" $
+                                       "Error retrieving list of new pastes " ++ show e
+                                threadDelay (etime * 1000000)
             Right u -> filterM notSeenURL u >>= sendJobs sitet
 
 -- | Update the counters for this site
@@ -247,14 +259,15 @@ spawnControlThread ekg jobs sitet = do
             (fromJust $!! Map.lookup sitet siteConfigs))
 
 -- | Spawn set of worker threads
-spawnWorkerThread::TChan Task
+spawnWorkerThread::TMVar Bool
+                -> TChan Task
                 -> UserConfig
                 -> Maybe DB.Pipe
                 -> Int
                 -> IO ThreadId
-spawnWorkerThread jobs conf dbPipe seed =
+spawnWorkerThread errorv jobs conf dbPipe seed =
     forkIO
-        (void $ execWorker checkone (WorkerState jobs checkf (mkStdGen seed) dbPipe dbName') conf)
+        (void $ execWorker checkone (WorkerState errorv jobs checkf (mkStdGen seed) dbPipe dbName') conf)
   where
     dbName' = dbName conf
     checkf = checkContent (alertStrings conf) (alertStringsCI conf)
@@ -262,10 +275,13 @@ spawnWorkerThread jobs conf dbPipe seed =
 ---------------------------------------------------
 -- | main
 --
--- After starting all sub-threads, this thread just spins
+-- After starting all sub-threads, this thread just
+-- watches the errorv TMVar. If any thread writes
+-- to this, shutdown
 ---------------------------------------------------
 pastewatch :: IO ()
 pastewatch = do
+    errorv <- newEmptyTMVarIO
     file   <- parseArgs
     config <- parseConfig file
     setUpLogging (logLevel config)
@@ -276,16 +292,17 @@ pastewatch = do
     dbPipe <- genDbPipe (alertToDB config) (dbHost config)
     let seeds = randomlist (nthreads config) seed
     infoM "pastewatch.main" "Starting"
-    mapM_ (spawnWorkerThread jobs config dbPipe) seeds
+    mapM_ (spawnWorkerThread errorv jobs config dbPipe) seeds
     mapM_ (spawnControlThread ekg jobs) [minBound .. maxBound]
-    forever $ threadDelay (360000 * 1000000)
+    x <- atomically $ takeTMVar errorv
+    exitWith (ExitFailure 1)
   where
 
     dbConnect host = do
         r <- runEitherT $ scriptIO $ DB.runIOE $ DB.connect host
         case r of
             Left  e -> do
-                putStrLn $ "Database connection error: " ++ show e
+                errorM "pastewatch.pastewatch" $ "Database connection error: " ++ show e
                 exitWith (ExitFailure 1)
             Right c -> return c
 

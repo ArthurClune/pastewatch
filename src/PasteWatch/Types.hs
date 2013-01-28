@@ -28,6 +28,7 @@ module PasteWatch.Types
     ) where
 
 import           Control.Concurrent.STM         (TChan)
+import           Control.Concurrent.STM.TMVar   (TMVar)
 import           Control.DeepSeq
 import           Control.DeepSeq.Generics       (genericRnf)
 import           Control.Monad.Reader
@@ -229,6 +230,8 @@ data ControlState = ControlState {
 
 -- | State for the worker threads
 data WorkerState = WorkerState {
+  -- | TMVar for critical errors. Writing True to this shuts down all threads
+  criticalError :: TMVar Bool,
   -- | Shared queue
   jobsQueue     :: TChan Task,
   -- | The check function
@@ -240,6 +243,7 @@ data WorkerState = WorkerState {
   -- | DB connection
   dbPipe        :: Maybe DB.Pipe,
   db            :: DB.Database
+
 }
 
 -- | A Task is a URL to check
