@@ -101,7 +101,7 @@ doCheck' cssfunc url contentMatch  = do
   where
     extractContent doc = do
         content <- runX . xshow $ doc >>> cssfunc >>> deep isText
-        let pastetxt = PasteContents $ T.pack $ head content in
+        let pastetxt = PasteContents $ T.filter (/= '\r') $ T.pack $ head content in
           case contentMatch pastetxt of
               Just x  -> return $!! Right (x, pastetxt)
               Nothing -> return $! Left TESTED
