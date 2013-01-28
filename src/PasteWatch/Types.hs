@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveGeneric, GeneralizedNewtypeDeriving, Rank2Types #-}
+{-# LANGUAGE DeriveGeneric, GeneralizedNewtypeDeriving, OverloadedStrings, Rank2Types #-}
 
 -- | Core types
 module PasteWatch.Types
@@ -41,6 +41,7 @@ import qualified Data.Time.Clock as Time
 import qualified Database.MongoDB as DB
 import           GHC.Exts( IsString(..) )
 import           GHC.Generics
+import           System.Log as Log
 import           System.Remote.Counter          (Counter)
 import           System.Remote.Gauge            (Gauge)
 import           System.Random
@@ -111,6 +112,12 @@ instance DCT.Configured DB.Host where
     convert (DCT.String h) = Just $ DB.host $ T.unpack h
     convert _              = Nothing
 
+instance DCT.Configured Log.Priority where
+    convert (DCT.String "DEBUG") = Just $ Log.DEBUG
+    convert (DCT.String "INFO")  = Just $ Log.INFO
+    convert (DCT.String "ERROR") = Just $ Log.ERROR
+    convert _              = Nothing
+
 --------------------------------------------------------------
 -- Config data structures
 --------------------------------------------------------------
@@ -153,33 +160,33 @@ data UserConfig = UserConfig {
     alertStrings   :: ![T.Text],
     -- | Strings to alert on (case insensitive) if seen in a paste
     alertStringsCI :: ![T.Text],
+    -- | Should we send alerts to the DB?
+    alertToDB        :: !Bool,
+    -- | Should we send email alerts?
+    alertToEmail     :: !Bool,
     -- | Hostname of mongoDB server
     dbHost         :: !DB.Host,
     -- | dbName
     dbName         :: !DB.Database,
-    -- | Print debug messages?
-    debugging      :: !Bool,
     -- | Domain that email comes from
     domain         :: !Domain,
-    -- | Should we log to the DB
-    logToDB        :: !Bool,
-    -- | Should we send email alerts?
-    logToEmail     :: !Bool,
+    -- | Log level for hslogger
+    logLevel       :: !Log.Priority,
     -- | Number of Haskell (lightweight) threads to use
     -- for downloading. Total number of threads used
     -- equals nthreads + (2 * number of sites) + 1
-    nthreads        :: !Int,
+    nthreads       :: !Int,
     -- | We wait for a random number between 0 and pauseMax seconds before
     -- downloading the URL
     -- Use this to stop sites blocking downloads due to too many requests in too short
     -- a time period
-    pauseMax        :: !Int,
+    pauseMax       :: !Int,
     -- | Send alert emails to?
-    recipients       :: ![Email],
+    recipients     :: ![Email],
     -- | Send alert emails as?
-    sender           :: !Email,
+    sender         :: !Email,
     -- | SMTP server to use to send email via
-    smtpServer       :: !Host
+    smtpServer     :: !Host
 }
 
 --------------------------------------------------------------
