@@ -62,11 +62,11 @@ emailFile True sendResult url match content = do
     liftIO $ do
         infoM "pastewatch.emailFile" $ show url ++ " matches " ++ show match
         res <- runEitherT $ tryIO $ sendEmail (sender conf)
-               (recipients conf)
-               (domain conf)
-               (smtpServer conf)
-               ("Pastebin alert. Match on " ++ show match)
-               (show url ++ "\n\n" ++ show content)
+                                       (recipients conf)
+                                       (domain conf)
+                                       (smtpServer conf)
+                                       ("Pastebin alert. Match on " ++ show match)
+                                       (show url ++ "\n\n" ++ show content)
         case res of
             Left  e -> do
                         errorM "pastewatch.emailFile" $ "Error sending email " ++ show e
@@ -75,19 +75,19 @@ emailFile True sendResult url match content = do
 
 -- | Store matching paste in DB
 -- If we get a DB error, kill the program
-storeInDB::Bool
+storeInDB::Maybe DB.Pipe
          -> ( ResultCode->IO () )
          -> Site
          -> URL
          -> MatchText
          -> PasteContents
          -> Worker ()
-storeInDB False _ _ _ _ _ = return ()
-storeInDB True sendResult site (URL url) (MatchText match) (PasteContents content) =
+storeInDB Nothing _ _ _ _ _ = return ()
+storeInDB (Just pipe) sendResult site (URL url) (MatchText match) (PasteContents content) =
     do
         conf <- get
         ts   <- liftIO Time.getCurrentTime
-        let run = DB.access (fromJust $ dbPipe conf) DB.master (db conf)
+        let run = DB.access pipe DB.master (db conf)
         let paste = ["schemaVer" =: (1::Int),
                      "ts"        =: ts,
                      "url"       =: url,
@@ -180,7 +180,7 @@ checkone = forever $ do
         Right (match, content) -> do
             sendResult SUCCESS
             emailFile (alertToEmail conf) sendResult url match content
-            storeInDB (alertToDB conf) sendResult (site job) url match content
+            storeInDB (dbPipe st) sendResult (site job) url match content
 
 -- | Put task back on a queue for later
 -- unless we've already seen it 5 times
@@ -281,8 +281,7 @@ spawnWorkerThread errorv jobs conf dbPipe seed =
 pastewatch :: IO ()
 pastewatch = do
     errorv <- newEmptyTMVarIO
-    file   <- parseArgs
-    config <- parseConfig file
+    config <- parseArgs >>= parseConfig
     setUpLogging (logLevel config)
     jobs   <- newTChanIO
     seed   <- newStdGen
@@ -303,17 +302,15 @@ pastewatch = do
             Left  e -> do
                 errorM "pastewatch.pastewatch" $ "Database connection error: " ++ show e
                 exitWith (ExitFailure 1)
-            Right c -> return c
+            Right c -> return $ Just c
 
-    genDbPipe True host = do
-        p <- dbConnect host
-        return $ Just p
+    genDbPipe True host = dbConnect host
     genDbPipe False _   = return Nothing
 
     randomlist n = take n . unfoldr (Just . random)
 
     setLabels ekg = do
-        stLabel <- getLabel "Start time" ekg
+        stLabel    <- getLabel "Start time" ekg
         paramLabel <- getLabel "# cores" ekg
         startTime  <- getZonedTime
         SRL.set stLabel $ T.pack $ formatTime defaultTimeLocale "%c" startTime

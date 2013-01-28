@@ -114,10 +114,10 @@ instance DCT.Configured DB.Host where
     convert _              = Nothing
 
 instance DCT.Configured Log.Priority where
-    convert (DCT.String "DEBUG") = Just $ Log.DEBUG
-    convert (DCT.String "INFO")  = Just $ Log.INFO
-    convert (DCT.String "ERROR") = Just $ Log.ERROR
-    convert _              = Nothing
+    convert (DCT.String "DEBUG") = Just Log.DEBUG
+    convert (DCT.String "INFO")  = Just Log.INFO
+    convert (DCT.String "ERROR") = Just Log.ERROR
+    convert _                    = Nothing
 
 --------------------------------------------------------------
 -- Config data structures
