@@ -11,7 +11,6 @@ import           Prelude hiding (catch)
 
 import           Control.Concurrent         (forkIO, threadDelay, ThreadId)
 import           Control.Concurrent.STM
-import           Control.Concurrent.STM.TMVar
 import           Control.DeepSeq            ( ($!!) )
 import           Control.Error
 import           Control.Monad.Reader
@@ -294,7 +293,7 @@ pastewatch = do
     infoM "pastewatch.main" "Starting"
     mapM_ (spawnWorkerThread errorv jobs config dbPipe) seeds
     mapM_ (spawnControlThread ekg jobs) [minBound .. maxBound]
-    x <- atomically $ takeTMVar errorv
+    _ <- atomically $ takeTMVar errorv
     exitWith (ExitFailure 1)
   where
 
