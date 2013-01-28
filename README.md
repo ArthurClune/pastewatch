@@ -35,6 +35,18 @@ Run MongoDB on the same host as this script with no auth to play.
 
 This is not suitable for real use yet. The schema will change, there are no indexes etc.
 
+Current schema:
+```
+schemaVer =: Int,
+ts        =: Int,
+url       =: String,    # URL for this paste
+content   =: String,    # Content of the paste
+tags      =: [String],  # List of tags
+alertedOn =: String     # String that triggered the alert
+site      =: String     # "PASTEBIN",  "PASTIE" etc
+```
+
+
 Extras
 ------
 
