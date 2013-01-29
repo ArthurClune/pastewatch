@@ -48,7 +48,7 @@ siteConfigs = Map.fromList [
 doCheck::Site
        -> URL
        -> (PasteContents->Maybe MatchText)
-       -> IO (Either ResultCode (MatchText, PasteContents))
+       -> IO (ResultCode, Maybe MatchText, Maybe PasteContents)
 doCheck Pastebin  = doCheck' (css "textarea")
 doCheck Pastie    = doCheck' (css "pre[class=textmate-source]")
 doCheck SkidPaste = doCheck' (css "div[class=content]")
@@ -92,19 +92,20 @@ getNewPastes Snipt = do
 doCheck'::IOSLA (XIOState ()) (NTree XNode) (NTree XNode)
         -> URL
         -> (PasteContents->Maybe MatchText)
-        -> IO (Either ResultCode (MatchText, PasteContents))
+        -> IO (ResultCode, Maybe MatchText, Maybe PasteContents)
 doCheck' cssfunc url contentMatch  = do
     res <- fetchURL url
     case res of
-        Left  e   -> return $! Left e
+        Left  e   -> return (e, Nothing, Nothing)
         Right doc -> extractContent doc
   where
     extractContent doc = do
         content <- runX . xshow $ doc >>> cssfunc >>> deep isText
-        let pastetxt = PasteContents $ T.filter (/= '\r') $ T.pack $ head content in
+        let pastetxt = PasteContents $ fixLineEndings $ T.pack $ head content in
           case contentMatch pastetxt of
-              Just x  -> return $!! Right (x, pastetxt)
-              Nothing -> return $! Left TESTED
+              Just x  -> return $!! (SUCCESS, Just x, Just pastetxt)
+              Nothing -> return $!! (TESTED, Nothing, Just pastetxt)
+    fixLineEndings t = T.unlines $ map (T.dropWhileEnd (== '\r')) $ T.lines t
 
 fetchURL::URL -> IO (Either ResultCode (IOSArrow XmlTree (NTree XNode)))
 fetchURL (URL url) = do

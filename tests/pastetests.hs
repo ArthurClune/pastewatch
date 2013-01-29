@@ -37,13 +37,13 @@ matchTests = [("Test single line T1", checkContentT "stuff in a@example.com dsfd
               ("Test singe line F2",  checkContentF "some text about a company doing stuff")
            ]
 
-getPasteTests = [("get pastebin", "@example.com", "testing @example.com testing",
+getPasteTests = [("get pastebin", "@example.com", "testing @example.com testing\n",
                    Pastebin, URL "http://pastebin.com/bLFduQqs"),
                 ("get pastie", "@example.com", "testing @example.com testing\n",
                    Pastie, URL "http://pastie.org/5406980"),
                 ("get slexy", "@example.com", "testing @example.com testing\n",
                    Slexy, URL "http://slexy.org/view/s2Fv9q8J2H"),
-                ("get snipt", "@example.com", "testing @example.com testing",
+                ("get snipt", "@example.com", "testing @example.com testing\n",
                    Snipt, URL "http://snipt.org/zkfe8/plaintext"),
                 ("get skidpaste", "@example.com",
                     "\ntesting @example.com testingParsed in 0.000 seconds\n",
@@ -56,7 +56,7 @@ newPasteTests = map (\s -> TestCase $ assertBool ""
                     [minBound..maxBound]
 
 runGetPasteTest (text, matcht, contents, site, url) =
-    TestCase $ assertEqual text (Right (MatchText matcht, PasteContents contents))
+    TestCase $ assertEqual text (SUCCESS, Just (MatchText matcht), Just (PasteContents contents))
                                 (unsafeDoCheck site url)
 
 runMatchTest (text, test) = TestCase $ assertBool text test

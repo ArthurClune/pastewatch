@@ -171,6 +171,8 @@ data UserConfig = UserConfig {
     dbName         :: !DB.Database,
     -- | Domain that email comes from
     domain         :: !Domain,
+    -- | Log all pastes in DB?
+    logAllToDB     :: !Bool,
     -- | Log level for hslogger
     logLevel       :: !Log.Priority,
     -- | Number of Haskell (lightweight) threads to use

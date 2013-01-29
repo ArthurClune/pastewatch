@@ -76,11 +76,17 @@ storeInDB::Maybe DB.Pipe
          -> ( ResultCode->IO () )
          -> Site
          -> URL
-         -> MatchText
+         -> Maybe MatchText
          -> PasteContents
          -> Worker ()
 storeInDB Nothing _ _ _ _ _ = return ()
-storeInDB (Just pipe) sendResult site (URL url) (MatchText match) (PasteContents content) =
+storeInDB (Just pipe) sendResult site (URL url) (Just (MatchText match)) (PasteContents content) =
+    storeInDB' pipe sendResult site url match content
+
+storeInDB (Just pipe) sendResult site (URL url) Nothing (PasteContents content) =
+    storeInDB' pipe sendResult site url (""::T.Text) content
+
+storeInDB' pipe sendResult site url match content =
     do
         WorkerState{..} <- get
         ts   <- liftIO Time.getCurrentTime
@@ -94,12 +100,13 @@ storeInDB (Just pipe) sendResult site (URL url) (MatchText match) (PasteContents
                      "site"      =: show site
                     ]
         liftIO $ do
-            infoM "pastewatch.storeInDB" $ show url ++ " matches " ++ show match
+            if match == ""
+                then debugM "pastewatch.storeInDB" $ show url
+                else infoM  "pastewatch.storeInDB" $ show url ++ " matches " ++ show match
             res <- run $ DB.insert "pastes" paste
             case res of
                 Left  e -> do
                             errorM "pastewatch.storeInDB" $ "Error storing in DB " ++ show e
-                            sendResult DB_ERR
                             atomically $ putTMVar criticalError True
                 Right _ -> return ()
 
@@ -162,20 +169,24 @@ checkone::Worker ()
 checkone = forever $ do
     WorkerState{..} <- get
     UserConfig{..}  <- ask
-    job  <- liftIO $ atomically $ readTChan jobsQueue
+    job@Task{..} <- liftIO $ atomically $ readTChan jobsQueue
     pause
-    let url = paste job
-    let sendResult mess = liftIO . atomically $ writeTChan (rStatus job) mess
+    let sendResult mess = liftIO . atomically $ writeTChan rStatus mess
     result <- liftIO $ do
-        infoM "pastewatch.checkone" $ show url
-        doCheck (site job) url checkFunction
+        infoM "pastewatch.checkone" $ show paste
+        doCheck site paste checkFunction
     case result of
-        Left RETRY -> reschedule job
-        Left r     -> sendResult r
-        Right (match, content) -> do
+        (RETRY, _, _) -> reschedule job
+        (TESTED, _, Just content) -> do
+            sendResult TESTED
+            when logAllToDB $
+                storeInDB dbPipe sendResult site paste Nothing content
+        (SUCCESS, Just match, Just content) -> do
             sendResult SUCCESS
-            emailFile alertToEmail sendResult url match content
-            storeInDB dbPipe sendResult (site job) url match content
+            emailFile alertToEmail sendResult paste match content
+            storeInDB dbPipe sendResult site paste (Just match) content
+        (r, _, _) -> sendResult r
+
 
 -- | Put task back on a queue for later
 -- unless we've already seen it 5 times
@@ -281,7 +292,7 @@ pastewatch = do
     seed   <- newStdGen
     ekg    <- forkServer "localhost" 8000
     setLabels ekg
-    dbPipe <- genDbPipe (alertToDB config) (dbHost config)
+    dbPipe <- genDbPipe (logAllToDB config || alertToDB config) (dbHost config)
     let seeds = randomlist (nthreads config) seed
     infoM "pastewatch.main" "Starting"
     mapM_ (spawnWorkerThread errorv jobs config dbPipe) seeds
