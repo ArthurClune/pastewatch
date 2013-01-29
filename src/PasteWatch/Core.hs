@@ -1,4 +1,4 @@
-{-# LANGUAGE NamedFieldPuns, OverloadedStrings, ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings, RecordWildCards, ScopedTypeVariables #-}
 
 -- | Check paste sites (as defined in PasteWatch.Sites) for content matching
 -- given strings
@@ -58,13 +58,10 @@ emailFile::Bool
          -> Worker ()
 emailFile False _ _ _ _ = return ()
 emailFile True sendResult url match content = do
-    conf <- ask
+    UserConfig{..} <- ask
     liftIO $ do
         infoM "pastewatch.emailFile" $ show url ++ " matches " ++ show match
-        res <- runEitherT $ tryIO $ sendEmail (sender conf)
-                                       (recipients conf)
-                                       (domain conf)
-                                       (smtpServer conf)
+        res <- runEitherT $ tryIO $ sendEmail sender recipients domain smtpServer
                                        ("Pastebin alert. Match on " ++ show match)
                                        (show url ++ "\n\n" ++ show content)
         case res of
@@ -85,9 +82,9 @@ storeInDB::Maybe DB.Pipe
 storeInDB Nothing _ _ _ _ _ = return ()
 storeInDB (Just pipe) sendResult site (URL url) (MatchText match) (PasteContents content) =
     do
-        conf <- get
+        WorkerState{..} <- get
         ts   <- liftIO Time.getCurrentTime
-        let run = DB.access pipe DB.master (db conf)
+        let run = DB.access pipe DB.master db
         let paste = ["schemaVer" =: (1::Int),
                      "ts"        =: ts,
                      "url"       =: url,
@@ -103,7 +100,7 @@ storeInDB (Just pipe) sendResult site (URL url) (MatchText match) (PasteContents
                 Left  e -> do
                             errorM "pastewatch.storeInDB" $ "Error storing in DB " ++ show e
                             sendResult DB_ERR
-                            atomically $ putTMVar (criticalError conf) True
+                            atomically $ putTMVar criticalError True
                 Right _ -> return ()
 
 ---------------------------------------------------
@@ -125,16 +122,14 @@ insertURL l = do
 pruneURLs::Control ()
 pruneURLs = do
     now <- liftIO Time.getCurrentTime
-    sc  <- ask
-    let filterf x = Time.diffUTCTime now x < pTime
-        pTime = pruneTime sc
+    SiteConfig{..}   <- ask
+    ControlState{..} <- get
+    let filterf x = Time.diffUTCTime now x < pruneTime
       in
         modify $ \s -> s { linksSeen =
-            Map.filter filterf (linksSeen s) }
-    gauge <- gets seenHashLen
-    hash  <- gets linksSeen
-    liftIO $ SRG.set gauge (Map.size hash)
-    modify $ \s -> s { seenHashLen = gauge }
+            Map.filter filterf linksSeen }
+    liftIO $ SRG.set seenHashLen (Map.size linksSeen)
+    modify $ \s -> s { seenHashLen = seenHashLen }
 
 -- | If we have not seen a link before, return True and record that we have
 -- now seen it.  Otherwise, return False.
@@ -153,9 +148,9 @@ notSeenURL url =  do
 -- | Pause for a random period between 10,000 microseconds and pauseMax seconds
 pause::Worker()
 pause = do
-    conf <- ask
+    UserConfig{..} <- ask
     st   <- get
-    let (delayt, gen') = randomR (10000, pauseMax conf * 1000000) (randGen st)
+    let (delayt, gen') = randomR (10000, pauseMax * 1000000) (randGen st)
     put st { randGen  = gen' }
     liftIO $ threadDelay delayt
     return ()
@@ -165,22 +160,22 @@ pause = do
 -- random time before starting
 checkone::Worker ()
 checkone = forever $ do
-    st   <- get
-    conf <- ask
-    job  <- liftIO $ atomically $ readTChan (jobsQueue st)
+    WorkerState{..} <- get
+    UserConfig{..}  <- ask
+    job  <- liftIO $ atomically $ readTChan jobsQueue
     pause
     let url = paste job
     let sendResult mess = liftIO . atomically $ writeTChan (rStatus job) mess
     result <- liftIO $ do
         infoM "pastewatch.checkone" $ show url
-        doCheck (site job) url (checkFunction st)
+        doCheck (site job) url checkFunction
     case result of
         Left RETRY -> reschedule job
         Left r     -> sendResult r
         Right (match, content) -> do
             sendResult SUCCESS
-            emailFile (alertToEmail conf) sendResult url match content
-            storeInDB (dbPipe st) sendResult (site job) url match content
+            emailFile alertToEmail sendResult url match content
+            storeInDB dbPipe sendResult (site job) url match content
 
 -- | Put task back on a queue for later
 -- unless we've already seen it 5 times
@@ -208,9 +203,8 @@ reschedule job = do
 -- | Put urls into the shared queue
 sendJobs::Site -> [URL] -> Control ()
 sendJobs sitet links = do
-    chan  <- gets linkQueue
-    rchan <- gets resultQueue
-    liftIO . atomically $ mapM_ (writeTChan chan . Task sitet 0 rchan) links
+    ControlState{..} <- get
+    liftIO . atomically $ mapM_ (writeTChan linkQueue . Task sitet 0 resultQueue) links
 
 -- | Loop forever, pulling the new pastes for a give site and
 -- putting into the queue for other threads to pick up
