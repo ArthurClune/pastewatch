@@ -73,20 +73,19 @@ emailFile True sendResult url match content = do
 -- | Store matching paste in DB
 -- If we get a DB error, kill the program
 storeInDB::Maybe DB.Pipe
-         -> ( ResultCode->IO () )
          -> Site
          -> URL
          -> Maybe MatchText
          -> PasteContents
          -> Worker ()
-storeInDB Nothing _ _ _ _ _ = return ()
-storeInDB (Just pipe) sendResult site url (Just match) content =
-    storeInDB' pipe sendResult site url match content
+storeInDB Nothing _ _ _ _ = return ()
+storeInDB (Just pipe) site url (Just match) content =
+    storeInDB' pipe site url match content
 
-storeInDB (Just pipe) sendResult site url Nothing content =
-    storeInDB' pipe sendResult site url (""::T.Text) content
+storeInDB (Just pipe) site url Nothing content =
+    storeInDB' pipe site url (""::T.Text) content
 
-storeInDB' pipe sendResult site url match content =
+storeInDB' pipe site url match content =
     do
         WorkerState{..} <- get
         ts   <- liftIO Time.getCurrentTime
@@ -180,11 +179,11 @@ checkone = forever $ do
         (TESTED, _, Just content) -> do
             sendResult TESTED
             when logAllToDB $
-                storeInDB dbPipe sendResult site paste Nothing content
+                storeInDB dbPipe site paste Nothing content
         (SUCCESS, Just match, Just content) -> do
             sendResult SUCCESS
             emailFile alertToEmail sendResult paste match content
-            storeInDB dbPipe sendResult site paste (Just match) content
+            storeInDB dbPipe site paste (Just match) content
         (r, _, _) -> sendResult r
 
 
