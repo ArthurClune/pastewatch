@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveGeneric, GeneralizedNewtypeDeriving, OverloadedStrings, Rank2Types #-}
+{-# LANGUAGE DeriveGeneric, DeriveDataTypeable, GeneralizedNewtypeDeriving, OverloadedStrings #-}
 
 -- | Core types
 module PasteWatch.Types
@@ -39,6 +39,7 @@ import           Data.Hashable.Generic (gHashWithSalt)
 import qualified Data.HashMap.Strict as Map
 import qualified Data.Text as T
 import qualified Data.Time.Clock as Time
+import           Data.Typeable
 import qualified Database.MongoDB as DB
 import           GHC.Exts( IsString(..) )
 import           GHC.Generics
@@ -79,12 +80,12 @@ instance DCT.Configured Host where
 instance NFData Host where rnf = genericRnf
 
 -- | A line in a paste that we have alerted on
-newtype MatchText = MatchText T.Text deriving (Eq, Generic, IsString, Show)
+newtype MatchText = MatchText T.Text deriving (Eq, Generic, IsString, Show, Typeable, DB.Val)
 
 instance NFData MatchText where rnf = genericRnf
 
 -- | Plain text contents of a paste
-newtype PasteContents = PasteContents T.Text deriving (Eq, Generic, IsString, Show)
+newtype PasteContents = PasteContents T.Text deriving (Eq, Generic, IsString, Show, Typeable, DB.Val)
 
 instance NFData PasteContents where rnf = genericRnf
 
@@ -100,7 +101,7 @@ getCtr::ResultCode -> Counters -> Counter
 getCtr rc ctrs = ctrs !! fromEnum rc
 
 -- | Simple type to store URLs
-newtype URL = URL T.Text deriving (Eq, Generic, Hashable, IsString, Show)
+newtype URL = URL T.Text deriving (Eq, Generic, Hashable, IsString, Show, Typeable, DB.Val)
 
 instance DCT.Configured URL where
     convert (DCT.String v) = Just $ URL v
@@ -128,7 +129,18 @@ instance DCT.Configured Log.Priority where
 -- doCheck and getnewPastes in PasteWatch.Sites must
 -- be implemented for every new site
 data Site = Pastebin | Pastie | SkidPaste | Slexy | Snipt
-                deriving (Bounded, Enum, Eq, Generic, Show)
+                deriving (Bounded, Enum, Eq, Generic, Show, Typeable)
+
+instance DB.Val Site where
+    val a = DB.String (T.pack $ show a)
+    cast' (DB.String a) = case a of
+      "Pastebin"  -> Just Pastebin
+      "Pastie"    -> Just Pastie
+      "SkidPaste" -> Just SkidPaste
+      "Slexy"     -> Just Slexy
+      "Snipt"     -> Just Snipt
+      _           -> Nothing
+    cast' _ = Nothing
 
 -- No ETA reduce on this instance. See
 -- http://hackage.haskell.org/packages/archive/hashable-generics/1.1.8/doc/html/Data-Hashable-Generic.html

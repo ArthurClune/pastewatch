@@ -25,7 +25,8 @@ Library
                       PasteWatch.Utils
     hs-source-dirs:   src
     default-language: Haskell98
-    Build-depends:    attoparsec, base, bytestring, configurator, deepseq, deepseq-generics,
+    Build-depends:    attoparsec, base, bson, bytestring, configurator, deepseq,
+                      deepseq-generics,
                       ekg, errors, ghc-prim, HandsomeSoup, hashable,
                       hashable-generics, hslogger, HTTP,
                       hxt, mongoDB, mtl, network,  old-locale, old-time, parallel-io,

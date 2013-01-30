@@ -80,10 +80,10 @@ storeInDB::Maybe DB.Pipe
          -> PasteContents
          -> Worker ()
 storeInDB Nothing _ _ _ _ _ = return ()
-storeInDB (Just pipe) sendResult site (URL url) (Just (MatchText match)) (PasteContents content) =
+storeInDB (Just pipe) sendResult site url (Just match) content =
     storeInDB' pipe sendResult site url match content
 
-storeInDB (Just pipe) sendResult site (URL url) Nothing (PasteContents content) =
+storeInDB (Just pipe) sendResult site url Nothing content =
     storeInDB' pipe sendResult site url (""::T.Text) content
 
 storeInDB' pipe sendResult site url match content =
@@ -97,7 +97,7 @@ storeInDB' pipe sendResult site url match content =
                      "content"   =: content,
                      "tags"      =: [match],
                      "alertedOn" =: match,
-                     "site"      =: show site
+                     "site"      =: site
                     ]
         liftIO $ do
             if match == ""
