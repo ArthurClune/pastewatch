@@ -26,7 +26,7 @@ import           Text.HandsomeSoup          ((!), css, parseHtml, fromUrl)
 import           Text.XML.HXT.Core hiding   (trace)
 
 import PasteWatch.Types
-import PasteWatch.Utils  (sq)
+import PasteWatch.Utils  (stripQuotes)
 
 -- | Config for our sites
 -- delayTime is lower for busier sites
@@ -131,10 +131,10 @@ createCounters srv sitet =
     mapM (counterf . show) ([minBound .. maxBound] :: [ResultCode])
   where
     counterf = (`getCounter` srv) . T.pack . (prefix ++)
-    prefix = (sq . show $ sitet) ++ " "
+    prefix = (stripQuotes . show $ sitet) ++ " "
 
 -- | Generate the Gauges for a given site
 createGauges::Server -> Site -> IO Gauge
 createGauges srv sitet = getGauge label srv
   where
-      label = T.pack $ (sq . show $ sitet) ++ "Hash Length"
+      label = T.pack $ (stripQuotes . show $ sitet) ++ "Hash Length"

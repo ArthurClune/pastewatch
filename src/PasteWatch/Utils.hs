@@ -2,7 +2,7 @@
 module PasteWatch.Utils
     (
       sendEmail,
-      sq
+      stripQuotes
     ) where
 
 import           Data.IORef
@@ -46,19 +46,19 @@ sendEmail (Email sender)
     sendSMTP (Just sentRef) myDomain' sockAddr [message]
     return ()
   where
-    myDomain'    = sqt myDomain
-    recipients'  = map (toName . ( \(Email x) -> ("", sqt x))) recipients
-    sender'      = [toName ("", sqt sender)]
-    smtpServer'  = sqt smtpServer
+    myDomain'    = stripQuotesT myDomain
+    recipients'  = map (toName . ( \(Email x) -> ("", stripQuotesT x))) recipients
+    sender'      = [toName ("", stripQuotesT sender)]
+    smtpServer'  = stripQuotesT smtpServer
     toName (n,e) = NameAddr (Just n) e
 
 -- | Remove outmost double quotes from a string
-sqt::T.Text -> String
-sqt = sq . show
+stripQuotesT::T.Text -> String
+stripQuotesT = stripQuotes . show
 
-sq::String -> String
-sq ('"':s)  | last s == '"'  = init s
-            | otherwise      = s
-sq ('\'':s) | last s == '\'' = init s
-            | otherwise      = s
-sq s                         = s
+stripQuotes::String -> String
+stripQuotes ('"':s)  | last s == '"'  = init s
+                     | otherwise      = s
+stripQuotes ('\'':s) | last s == '\'' = init s
+                     | otherwise      = s
+stripQuotes s                         = s
