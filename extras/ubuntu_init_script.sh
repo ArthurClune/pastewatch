@@ -12,7 +12,7 @@
 # Author: Arthur Clune <arthur@clune.org>
 
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
-DESC="Description of the service"
+DESC="Monitoring service"
 NAME=pastewatch
 DAEMON=/usr/bin/$NAME
 DAEMON_ARGS="+RTS -N2 -T -RTS /etc/pastewatch.conf"
