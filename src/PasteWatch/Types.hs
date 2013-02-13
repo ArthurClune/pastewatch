@@ -61,7 +61,7 @@ instance DCT.Configured Domain where
 
 instance NFData Domain where rnf = genericRnf
 
--- | Email address ("Real Name", "email address")
+-- | Email address (e.g. "fred@example.com")
 newtype Email = Email T.Text deriving (Eq, Generic, IsString, Show)
 
 instance DCT.Configured Email where
