@@ -15,6 +15,7 @@ import          Prelude hiding (catch)
 
 import           Control.DeepSeq            ( ($!!) )
 import           Control.Error
+import           Control.Exception          (AsyncException(StackOverflow), handle)
 import qualified Data.HashMap.Strict as Map
 import qualified Data.Text as T
 import           Data.Tree.NTree.TypeDefs
@@ -97,7 +98,8 @@ doCheck' cssfunc url contentMatch  = do
     res <- fetchURL url
     case res of
         Left  e   -> return (e, Nothing, Nothing)
-        Right doc -> extractContent doc
+        Right doc -> handle (\StackOverflow -> return (STACK_OVERFLOW, Nothing, Nothing))
+                           $ extractContent doc
   where
     extractContent doc = do
         content <- runX . xshow $ doc >>> cssfunc >>> deep isText

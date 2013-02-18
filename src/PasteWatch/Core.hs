@@ -175,11 +175,14 @@ checkone = forever $ do
         infoM "pastewatch.checkone" $ show paste
         doCheck site paste checkFunction
     case result of
-        (RETRY, _, _) -> reschedule job
+        (RETRY, _, _) -> reschedule job -- reschedule handles logging
         (TESTED, _, Just content) -> do
             sendResult TESTED
             when logAllToDB $
                 storeInDB dbPipe site paste Nothing content
+        (STACK_OVERFLOW, _, _) -> liftIO $ do
+            errorM "pastewatch.checkone" $ "Stackover flow for " ++ show paste
+            sendResult STACK_OVERFLOW
         (SUCCESS, Just match, Just content) -> do
             sendResult SUCCESS
             emailFile alertToEmail sendResult paste match content
