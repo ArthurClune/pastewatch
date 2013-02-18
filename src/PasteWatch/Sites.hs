@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE BangPatterns, OverloadedStrings #-}
 -- | Code to deal with each specific type of site
 --
 -- Contains all the special case code that differs per site
@@ -61,28 +61,28 @@ doCheck Snipt     = doCheck' (css "textarea")
 getNewPastes::Site -> IO [URL]
 
 getNewPastes Pastebin = do
-    doc   <- fromUrl "http://www.pastebin.com/trends"
-    links <- runX $ doc >>> css "ul[class=right_menu] a" ! "href"
+    !doc   <- fromUrl "http://www.pastebin.com/trends"
+    !links <- runX $ doc >>> css "ul[class=right_menu] a" ! "href"
     return $!! map (URL . T.pack . ("http://pastebin.com" ++ )) links
 
 getNewPastes Pastie = do
-    doc   <- fromUrl "http://www.pastie.org/pastes"
-    links <- runX $ doc >>> css "div[class=pastePreview] a" ! "href"
+    !doc   <- fromUrl "http://www.pastie.org/pastes"
+    !links <- runX $ doc >>> css "div[class=pastePreview] a" ! "href"
     return $!! map (URL . T.pack) links
 
 getNewPastes SkidPaste = do
-    doc   <- fromUrl "http://skidpaste.org/index.html"
-    links <- runX $ doc >>> css "div[id=sidemenu] ul[class=submenu] a" ! "href"
+    !doc   <- fromUrl "http://skidpaste.org/index.html"
+    !links <- runX $ doc >>> css "div[id=sidemenu] ul[class=submenu] a" ! "href"
     return $!! map (URL . T.pack) $ filter (/= "") links
 
 getNewPastes Slexy = do
-    doc   <- fromUrl "http://slexy.org/recent"
-    links <- runX $ doc >>> css "td a" ! "href"
+    !doc   <- fromUrl "http://slexy.org/recent"
+    !links <- runX $ doc >>> css "td a" ! "href"
     return $!! map (URL . T.pack . ("http://slexy.org" ++)) links
 
 getNewPastes Snipt = do
-    doc   <- fromUrl "http://snipt.org/code/recent"
-    links <- runX $ doc >>> css "div[class=grid-block-container] a" ! "href"
+    !doc   <- fromUrl "http://snipt.org/code/recent"
+    !links <- runX $ doc >>> css "div[class=grid-block-container] a" ! "href"
     return $!! map (URL. T.pack . (++ "/plaintext")) links
 
 -----------------------------------------------------------
@@ -95,14 +95,14 @@ doCheck'::IOSLA (XIOState ()) (NTree XNode) (NTree XNode)
         -> (PasteContents->Maybe MatchText)
         -> IO (ResultCode, Maybe MatchText, Maybe PasteContents)
 doCheck' cssfunc url contentMatch  = do
-    res <- fetchURL url
+    !res <- fetchURL url
     case res of
         Left  e   -> return (e, Nothing, Nothing)
         Right doc -> handle (\StackOverflow -> return (STACK_OVERFLOW, Nothing, Nothing))
                            $ extractContent doc
   where
     extractContent doc = do
-        content <- runX . xshow $ doc >>> cssfunc >>> deep isText
+        !content <- runX . xshow $ doc >>> cssfunc >>> deep isText
         let pastetxt = PasteContents $ fixLineEndings $ T.pack $ head content in
           case contentMatch pastetxt of
               Just x  -> return $!! (SUCCESS, Just x, Just pastetxt)
@@ -111,7 +111,7 @@ doCheck' cssfunc url contentMatch  = do
 
 fetchURL::URL -> IO (Either ResultCode (IOSArrow XmlTree (NTree XNode)))
 fetchURL (URL url) = do
-    resp <- runEitherT $ tryIO $ simpleHTTP $ getRequest $ T.unpack url
+    !resp <- runEitherT $ tryIO $ simpleHTTP $ getRequest $ T.unpack url
     case resp of
         Left  e -> do
                     errorM "pastewatch.fetchURL" $ "Error retrieving paste " ++ show e
