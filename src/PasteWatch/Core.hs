@@ -60,7 +60,7 @@ emailFile False _ _ _ _ = return ()
 emailFile True sendResult url match content = do
     UserConfig{..} <- ask
     liftIO $ do
-        infoM "pastewatch.emailFile" $ show url ++ " matches " ++ show match
+        debugM "pastewatch.emailFile" $ "Sending email for " ++ show url
         res <- runEitherT $ tryIO $ sendEmail sender recipients domain smtpServer
                                        ("Pastebin alert. Match on " ++ show match)
                                        (show url ++ "\n\n" ++ show content)
@@ -99,9 +99,7 @@ storeInDB' pipe site url match content =
                      "site"      =: site
                     ]
         liftIO $ do
-            if match == ""
-                then debugM "pastewatch.storeInDB" $ show url
-                else infoM  "pastewatch.storeInDB" $ show url ++ " matches " ++ show match
+            debugM "pastewatch.storeInDB" $ show url
             res <- run $ DB.insert "pastes" paste
             case res of
                 Left  e -> do
@@ -184,6 +182,7 @@ checkone = forever $ do
             errorM "pastewatch.checkone" $ "Stackover flow for " ++ show paste
             sendResult STACK_OVERFLOW
         (SUCCESS, Just match, Just content) -> do
+            liftIO $ infoM "pastewatch.checkone" $ show paste ++ " matches " ++ show match
             sendResult SUCCESS
             emailFile alertToEmail sendResult paste match content
             storeInDB dbPipe site paste (Just match) content
@@ -193,20 +192,15 @@ checkone = forever $ do
 -- | Put task back on a queue for later
 -- unless we've already seen it 5 times
 reschedule::Task -> Worker ()
-reschedule job = do
-    liftIO $ infoM "pastewatch.reschedule" $ show (paste job)
+reschedule Task{..} = do
+    liftIO $ infoM "pastewatch.reschedule" $ show paste
     chan  <- gets jobsQueue
-    liftIO . atomically $ writeTChan (rStatus job) RETRY
+    liftIO . atomically $ writeTChan rStatus RETRY
     liftIO $ unless (ntimes' > 5) $ do
         threadDelay $ 627000000 * ntimes'   -- 5 mins + a bit
-        atomically $ writeTChan chan Task {
-                        site = site job,
-                        ntimes = ntimes',
-                        paste = paste job,
-                        rStatus = rStatus job
-                      }
+        atomically $ writeTChan chan Task { ntimes = ntimes', .. }
   where
-    ntimes' = ntimes job + 1
+    ntimes' = ntimes + 1
 
 ---------------------------------------------------
 -- Master thread code
