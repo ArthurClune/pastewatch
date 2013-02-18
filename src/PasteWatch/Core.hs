@@ -30,6 +30,7 @@ import           System.IO                  (stderr)
 import           System.Locale              (defaultTimeLocale)
 import           System.Log.Logger
 import           System.Log.Handler.Simple
+import           System.Log.Handler.Syslog  (openlog, Facility(..), Option(..))
 import           System.Log.Handler         (setFormatter)
 import           System.Log.Formatter
 import           System.Random
@@ -198,7 +199,7 @@ reschedule Task{..} = do
     liftIO . atomically $ writeTChan rStatus RETRY
     liftIO $ unless (ntimes' > 5) $ do
         threadDelay $ 627000000 * ntimes'   -- 5 mins + a bit
-        atomically $ writeTChan chan Task { ntimes = ntimes', .. }
+        atomically $ writeTChan chan Task{ ntimes = ntimes', .. }
   where
     ntimes' = ntimes + 1
 
@@ -283,7 +284,7 @@ pastewatch :: IO ()
 pastewatch = do
     errorv <- newEmptyTMVarIO
     config <- parseArgs >>= parseConfig
-    setUpLogging (logLevel config)
+    setUpLogging (logLevel config) (logTo config)
     jobs   <- newTChanIO
     seed   <- newStdGen
     ekg    <- forkServer "localhost" 8000
@@ -317,7 +318,19 @@ pastewatch = do
         SRL.set stLabel $ T.pack $ formatTime defaultTimeLocale "%c" startTime
         SRL.set paramLabel $ T.pack $ show numCapabilities
 
-    setUpLogging level = do
-        ha <- streamHandler stderr DEBUG >>= \h -> return $
-                setFormatter h (simpleLogFormatter "[$time : $loggername] $msg")
-        getRootLogger >>= \r -> saveGlobalLogger $ setLevel level . setHandlers [ha] $ r
+    -- log to stdout and/or syslog
+    setUpLogging level logdest
+        | logdest == LOGBOTH = do
+            setupStderr
+            setupSyslog addHandler
+        | logdest == LOGSYSLOG = setupSyslog (\s -> setHandlers [s])
+        | logdest == LOGSTDERR = setupStderr
+      where
+        setupStderr = do
+            ha <- streamHandler stderr DEBUG >>= \h -> return $
+                    setFormatter h (simpleLogFormatter "[$time : $loggername] $msg")
+            getRootLogger >>= \r -> saveGlobalLogger $ setLevel level . setHandlers [ha] $ r
+        setupSyslog handlerf = do
+            s <- openlog "pastewatch" [PID] DAEMON DEBUG
+            updateGlobalLogger rootLoggerName (setLevel level . handlerf s)
+

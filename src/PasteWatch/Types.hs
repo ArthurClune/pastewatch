@@ -9,6 +9,7 @@ module PasteWatch.Types
         Domain(..),
         Email(..),
         Host(..),
+        LogDestination(..),
         MatchText(..),
         PasteContents(..),
         ResultCode(..),
@@ -78,6 +79,14 @@ instance DCT.Configured Host where
     convert _              = Nothing
 
 instance NFData Host where rnf = genericRnf
+
+data LogDestination = LOGSTDERR | LOGSYSLOG | LOGBOTH deriving (Eq)
+
+instance DCT.Configured LogDestination where
+    convert (DCT.String "both")   = Just $ LOGBOTH
+    convert (DCT.String "stderr") = Just $ LOGSTDERR
+    convert (DCT.String "syslog") = Just $ LOGSYSLOG
+    convert _                     = Nothing
 
 -- | A line in a paste that we have alerted on
 newtype MatchText = MatchText T.Text deriving (Eq, Generic, IsString, Show, Typeable, DB.Val)
@@ -175,9 +184,9 @@ data UserConfig = UserConfig {
     -- | Strings to alert on (case insensitive) if seen in a paste
     alertStringsCI :: ![T.Text],
     -- | Should we send alerts to the DB?
-    alertToDB        :: !Bool,
+    alertToDB      :: !Bool,
     -- | Should we send email alerts?
-    alertToEmail     :: !Bool,
+    alertToEmail   :: !Bool,
     -- | Hostname of mongoDB server
     dbHost         :: !DB.Host,
     -- | dbName
@@ -188,6 +197,8 @@ data UserConfig = UserConfig {
     logAllToDB     :: !Bool,
     -- | Log level for hslogger
     logLevel       :: !Log.Priority,
+    -- | Where should we log to?
+    logTo          :: !LogDestination,
     -- | Number of Haskell (lightweight) threads to use
     -- for downloading. Total number of threads used
     -- equals nthreads + (2 * number of sites) + 1

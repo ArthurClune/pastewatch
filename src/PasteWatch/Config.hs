@@ -46,6 +46,7 @@ parseConfig file = do
                      <*> require c' "domain"
                      <*> require c' "logAllToDB"
                      <*> require c' "logLevel"
+                     <*> require c' "logTo"
                      <*> require c' "nthreads"
                      <*> require c' "pauseMax"
                      <*> require c' "recipients"
