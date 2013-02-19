@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric, DeriveDataTypeable, GeneralizedNewtypeDeriving, OverloadedStrings #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- | Core types
 module PasteWatch.Types
@@ -129,6 +130,10 @@ instance DCT.Configured Log.Priority where
     convert (DCT.String "INFO")  = Just Log.INFO
     convert (DCT.String "ERROR") = Just Log.ERROR
     convert _                    = Nothing
+
+instance DCT.Configured a => DCT.Configured [a] where
+    convert (DCT.List xs) = mapM DCT.convert xs
+    convert _             = Nothing
 
 --------------------------------------------------------------
 -- Config data structures

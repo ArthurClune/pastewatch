@@ -9,16 +9,11 @@ module PasteWatch.Config
 import Control.Applicative      ( (<$>), (<*>) )
 import Control.Error
 import Data.Configurator
-import Data.Configurator.Types
 import Safe                     (abort)
 import System.Environment       (getArgs)
 import System.Exit
 
 import PasteWatch.Types
-
-instance Configured a => Configured [a] where
-    convert (List xs) = mapM convert xs
-    convert _             = Nothing
 
 -- | Quick and dirty command line args handling
 parseArgs::IO FilePath
