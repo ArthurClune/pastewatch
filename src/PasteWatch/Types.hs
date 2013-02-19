@@ -81,6 +81,7 @@ instance DCT.Configured Host where
 
 instance NFData Host where rnf = genericRnf
 
+-- | Type to define where we log to
 data LogDestination = LOGSTDERR | LOGSYSLOG | LOGBOTH deriving (Bounded, Enum, Eq)
 
 instance DCT.Configured LogDestination where
