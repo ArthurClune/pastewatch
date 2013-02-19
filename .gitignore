@@ -4,3 +4,4 @@ output
 dist_*
 cabal-dev
 db.config
+pastewatch.log
