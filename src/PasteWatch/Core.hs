@@ -80,33 +80,33 @@ storeInDB::Maybe DB.Pipe
          -> PasteContents
          -> Worker ()
 storeInDB Nothing _ _ _ _ = return ()
-storeInDB (Just pipe) site url (Just match) content =
-    storeInDB' pipe site url match content
 
-storeInDB (Just pipe) site url Nothing content =
-    storeInDB' pipe site url (""::T.Text) content
-
-storeInDB' pipe site url match content =
-    do
-        WorkerState{..} <- get
-        ts   <- liftIO Time.getCurrentTime
-        let run = DB.access pipe DB.master db
-        let paste = ["schemaVer" =: (1::Int),
-                     "ts"        =: ts,
-                     "url"       =: url,
-                     "content"   =: content,
-                     "tags"      =: [match],
-                     "alertedOn" =: match,
-                     "site"      =: site
-                    ]
-        liftIO $ do
-            debugM "pastewatch.storeInDB" $ show url
-            res <- run $ DB.insert "pastes" paste
-            case res of
-                Left  e -> do
-                            errorM "pastewatch.storeInDB" $ "Error storing in DB " ++ show e
-                            atomically $ putTMVar criticalError True
-                Right _ -> return ()
+storeInDB (Just pipe) site url match content =
+    case match of
+        Nothing -> storeInDB' (""::T.Text)
+        Just m  -> storeInDB' m
+  where
+    storeInDB' m =
+        do
+            WorkerState{..} <- get
+            ts   <- liftIO Time.getCurrentTime
+            let run = DB.access pipe DB.master db
+            let paste = ["schemaVer" =: (1::Int),
+                         "ts"        =: ts,
+                         "url"       =: url,
+                         "content"   =: content,
+                         "tags"      =: [m],
+                         "alertedOn" =: m,
+                         "site"      =: site
+                        ]
+            liftIO $ do
+                debugM "pastewatch.storeInDB" $ show url
+                res <- run $ DB.insert "pastes" paste
+                case res of
+                    Left  e -> do
+                                errorM "pastewatch.storeInDB" $ "Error storing in DB " ++ show e
+                                atomically $ putTMVar criticalError True
+                    Right _ -> return ()
 
 ---------------------------------------------------
 -- Functions to maintain our map of urls and time
@@ -284,7 +284,7 @@ pastewatch :: IO ()
 pastewatch = do
     errorv <- newEmptyTMVarIO
     config <- parseArgs >>= parseConfig
-    setUpLogging (logLevel config) (logTo config)
+    setUpLogging (logTo config) (logLevel config)
     jobs   <- newTChanIO
     seed   <- newStdGen
     ekg    <- forkServer "localhost" 8000
@@ -319,12 +319,13 @@ pastewatch = do
         SRL.set paramLabel $ T.pack $ show numCapabilities
 
     -- log to stdout and/or syslog
-    setUpLogging level logdest
-        | logdest == LOGBOTH = do
-            setupStderr
-            setupSyslog addHandler
-        | logdest == LOGSYSLOG = setupSyslog (\s -> setHandlers [s])
-        | logdest == LOGSTDERR = setupStderr
+    setUpLogging logdest level =
+        case logdest of
+            LOGBOTH   -> do
+                             setupStderr
+                             setupSyslog addHandler
+            LOGSYSLOG -> setupSyslog (\s -> setHandlers [s])
+            LOGSTDERR -> setupStderr
       where
         setupStderr = do
             ha <- streamHandler stderr DEBUG >>= \h -> return $

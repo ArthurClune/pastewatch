@@ -36,13 +36,13 @@ import           Control.Monad.Reader
 import           Control.Monad.State
 import qualified Data.Configurator.Types as DCT
 import           Data.Hashable
-import           Data.Hashable.Generic (gHashWithSalt)
+import           Data.Hashable.Generic          (gHashWithSalt)
 import qualified Data.HashMap.Strict as Map
 import qualified Data.Text as T
 import qualified Data.Time.Clock as Time
 import           Data.Typeable
 import qualified Database.MongoDB as DB
-import           GHC.Exts( IsString(..) )
+import           GHC.Exts                       ( IsString(..) )
 import           GHC.Generics
 import           System.Log as Log
 import           System.Remote.Counter          (Counter)
@@ -80,7 +80,7 @@ instance DCT.Configured Host where
 
 instance NFData Host where rnf = genericRnf
 
-data LogDestination = LOGSTDERR | LOGSYSLOG | LOGBOTH deriving (Eq)
+data LogDestination = LOGSTDERR | LOGSYSLOG | LOGBOTH deriving (Bounded, Enum, Eq)
 
 instance DCT.Configured LogDestination where
     convert (DCT.String "both")   = Just $ LOGBOTH
