@@ -126,9 +126,9 @@ instance DCT.Configured DB.Host where
     convert _              = Nothing
 
 instance DCT.Configured Log.Priority where
-    convert (DCT.String "DEBUG") = Just Log.DEBUG
-    convert (DCT.String "INFO")  = Just Log.INFO
-    convert (DCT.String "ERROR") = Just Log.ERROR
+    convert (DCT.String "debug") = Just Log.DEBUG
+    convert (DCT.String "info")  = Just Log.INFO
+    convert (DCT.String "error") = Just Log.ERROR
     convert _                    = Nothing
 
 instance DCT.Configured a => DCT.Configured [a] where
