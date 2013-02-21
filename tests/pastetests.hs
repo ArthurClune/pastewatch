@@ -38,17 +38,17 @@ matchTests = [("Test single line T1", checkContentT "stuff in a@example.com dsfd
               ("Test singe line F2",  checkContentF "some text about a company doing stuff")
            ]
 
-getPasteTests = [("get pastebin", "@example.com", "testing @example.com testing\n",
-                   Pastebin, URL "http://pastebin.com/bLFduQqs"),
-                ("get pastie", "@example.com", "testing @example.com testing\n",
-                   Pastie, URL "http://pastie.org/5406980"),
+getPasteTests = [("get pastebin", "@example.com", "testing @example.com testing",
+                   Pastebin, URL "http://pastebin.com/raw.php?i=bLFduQqs"),
+                ("get pastie", "@example.com", "\ntesting @example.com testing\n",
+                   Pastie, URL "http://pastie.org/pastes/5406980/text"),
                 ("get slexy", "@example.com", "testing @example.com testing\n",
                    Slexy, URL "http://slexy.org/view/s2Fv9q8J2H"),
                 ("get snipt", "@example.com", "testing @example.com testing\n",
                    Snipt, URL "http://snipt.org/zkfe8/plaintext"),
                 ("get skidpaste", "@example.com",
-                   "testing @example.com testing\n",
-                   SkidPaste, URL "http://skidpaste.org/3cOMCRpA")
+                   "testing @example.com testing",
+                   SkidPaste, URL "http://skidpaste.org/3cOMCRpA.txt")
                ]
 
 stackOverflowTests = [ (Pastebin, URL "http://pastebin.com/9JyuyRGB") ]
