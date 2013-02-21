@@ -17,14 +17,15 @@ import           Control.DeepSeq            ( ($!!) )
 import           Control.Error
 import           Control.Exception          (AsyncException(StackOverflow), handle)
 import qualified Data.HashMap.Strict as Map
+import           Text.HandsomeSoup          ((!), css)
 import qualified Data.Text as T
 import           Data.Tree.NTree.TypeDefs
 import           Network.HTTP
 import           System.Log.Logger
 import           System.Remote.Gauge        (Gauge)
 import           System.Remote.Monitoring   (getCounter, getGauge, Server)
-import           Text.HandsomeSoup          ((!), css, parseHtml, fromUrl)
 import           Text.XML.HXT.Core hiding   (trace)
+import           Text.XML.HXT.TagSoup
 
 import PasteWatch.Types
 import PasteWatch.Utils  (stripQuotes)
@@ -61,35 +62,42 @@ doCheck Snipt     = doCheck' (css "textarea")
 getNewPastes::Site -> IO [URL]
 
 getNewPastes Pastebin = do
-    !doc   <- fromUrl "http://www.pastebin.com/trends"
-    !links <- runX $ doc >>> css "ul[class=right_menu] a" ! "href"
+    links <- getPage "http://www.pastebin.com/trends" (css "ul[class=right_menu] a" ! "href")
     return $!! map (URL . T.pack . ("http://pastebin.com" ++ )) links
 
 getNewPastes Pastie = do
-    !doc   <- fromUrl "http://www.pastie.org/pastes"
-    !links <- runX $ doc >>> css "div[class=pastePreview] a" ! "href"
+    links <- getPage "http://www.pastie.org/pastes" (css "div[class=pastePreview] a" ! "href")
     return $!! map (URL . T.pack) links
 
 getNewPastes SkidPaste = do
-    !doc   <- fromUrl "http://skidpaste.org/index.html"
-    !links <- runX $ doc >>> css "div[id=sidemenu] ul[class=submenu] a" ! "href"
+    links <- getPage "http://skidpaste.org/index.html" (css "div[id=sidemenu] ul[class=submenu] a" ! "href")
     return $!! map (URL . T.pack) $ filter (/= "") links
 
 getNewPastes Slexy = do
-    !doc   <- fromUrl "http://slexy.org/recent"
-    !links <- runX $ doc >>> css "td a" ! "href"
+    links <- getPage "http://slexy.org" (css "li a" ! "href")
     return $!! map (URL . T.pack . ("http://slexy.org" ++)) links
 
 getNewPastes Snipt = do
-    !doc   <- fromUrl "http://snipt.org/code/recent"
-    !links <- runX $ doc >>> css "div[class=grid-block-container] a" ! "href"
+    links <- getPage "http://snipt.org/code/recent" (css "div[class=grid-block-container] a" ! "href")
     return $!! map (URL. T.pack . (++ "/plaintext")) links
+
+
 
 -----------------------------------------------------------
 -- Nothing below here needs changing when adding a new site
 -----------------------------------------------------------
 
--- internal helper function
+-- internal helper functions
+
+getPage::String -> IOSLA (XIOState ()) XmlTree String -> IO [String]
+getPage url cssf = do
+  !doc <- simpleHTTP $ getRequest url
+  !body <- getResponseBody doc
+  runX $ readString [ withTagSoup,
+                      withValidate no,
+                      withWarnings no]
+                      body >>> cssf
+
 doCheck'::IOSLA (XIOState ()) (NTree XNode) (NTree XNode)
         -> URL
         -> (PasteContents->Maybe MatchText)
@@ -98,10 +106,11 @@ doCheck' cssfunc url contentMatch  = do
     !res <- fetchURL url
     case res of
         Left  e   -> return (e, Nothing, Nothing)
-        Right doc -> handle (\StackOverflow -> return (STACK_OVERFLOW, Nothing, Nothing))
-                           $ extractContent doc
+        Right page -> handle (\StackOverflow -> return (STACK_OVERFLOW, Nothing, Nothing))
+                           $ extractContent page
   where
-    extractContent doc = do
+    extractContent page = do
+        let doc = readString [ withTagSoup, withValidate no, withWarnings no] page
         !content <- runX . xshow $ doc >>> cssfunc >>> deep isText
         let pastetxt = PasteContents $ fixLineEndings $ T.pack $ head content in
           case contentMatch pastetxt of
@@ -109,7 +118,7 @@ doCheck' cssfunc url contentMatch  = do
               Nothing -> return $!! (TESTED, Nothing, Just pastetxt)
     fixLineEndings t = T.unlines $ map (T.dropWhileEnd (== '\r')) $ T.lines t
 
-fetchURL::URL -> IO (Either ResultCode (IOSArrow XmlTree (NTree XNode)))
+fetchURL :: URL -> IO (Either ResultCode String)
 fetchURL (URL url) = do
     !resp <- runEitherT $ tryIO $ simpleHTTP $ getRequest $ T.unpack url
     case resp of
@@ -121,7 +130,7 @@ fetchURL (URL url) = do
                       errorM "pastewatch.fetchURL" $ "Error retrieving paste " ++ show e
                       return $ Left FAILED
           Right r' -> case rspCode r' of
-            (2, 0, 0) -> return $ Right $ parseHtml (rspBody r')
+            (2, 0, 0) -> return $ Right $ rspBody r'
             (4, 0, 8) -> return $ Left RETRY
             (5, _, _) -> return $ Left RETRY
             _         -> return $ Left FAILED

@@ -1,13 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+import           Control.Exception (AsyncException(StackOverflow), handle)
 import           Control.Monad
-import           Data.Monoid      (mconcat)
+import           Data.Monoid       (mconcat)
 import           Data.Maybe
 import qualified Data.Text as T
-import           PasteWatch.Alert (checkContent)
+import           PasteWatch.Alert  (checkContent)
 import           Test.HUnit
 import           System.Exit      (exitFailure, exitSuccess)
-import           System.IO.Unsafe (unsafePerformIO)
+import           System.IO.Unsafe  (unsafePerformIO)
 
 import           PasteWatch.Sites
 import           PasteWatch.Types  hiding (UserConfig(..))
@@ -46,9 +47,11 @@ getPasteTests = [("get pastebin", "@example.com", "testing @example.com testing\
                 ("get snipt", "@example.com", "testing @example.com testing\n",
                    Snipt, URL "http://snipt.org/zkfe8/plaintext"),
                 ("get skidpaste", "@example.com",
-                    "\ntesting @example.com testingParsed in 0.000 seconds\n",
-                    SkidPaste, URL "http://skidpaste.org/3cOMCRpA")
+                   "\ntesting @example.com testingParsed in 0.000 seconds\n",
+                   SkidPaste, URL "http://skidpaste.org/3cOMCRpA")
                ]
+
+stackOverflowTests = [ (Pastebin, URL "http://pastebin.com/9JyuyRGB") ]
 
 -- test the new paste functions don't return an empty list
 newPasteTests = map (\s -> TestCase $ assertBool ""
@@ -61,11 +64,22 @@ runGetPasteTest (text, matcht, contents, site, url) =
 
 runMatchTest (text, test) = TestCase $ assertBool text test
 
+runStackOverflowTest (site, url) = TestCase $ assertEqual "Testing stackoverflow" TESTED runCheck
+  where
+    runCheck = fst3 $ unsafePerformIO $
+      handle (\StackOverflow -> return (STACK_OVERFLOW, Nothing, Nothing))
+             $ doCheck site url (checkContent alertStrings alertStringsCI)
+
+fst3 (a, b, c) = a
+
+
+
 main::IO ()
 main =
     do c1 <- runTestTT $ TestList $ map runMatchTest matchTests
        c2 <- runTestTT $ TestList $ map runGetPasteTest getPasteTests
        c3 <- runTestTT $ TestList newPasteTests
-       if any (\x -> errors x /= 0 || failures x /= 0) [c1, c2, c3]
+       c4 <- runTestTT $ TestList $ map runStackOverflowTest stackOverflowTests
+       if any (\x -> errors x /= 0 || failures x /= 0) [c1, c2, c3, c4]
             then exitFailure
             else exitSuccess
