@@ -53,7 +53,7 @@ doCheck::Site
        -> IO (ResultCode, Maybe MatchText, Maybe PasteContents)
 doCheck Pastebin  = doCheck' (css "textarea")
 doCheck Pastie    = doCheck' (css "pre[class=textmate-source]")
-doCheck SkidPaste = doCheck' (css "div[class=content]")
+doCheck SkidPaste = doCheck' (css "pre")
 doCheck Slexy     = doCheck' (css "div[class=text]")
 doCheck Snipt     = doCheck' (css "textarea")
 
@@ -70,11 +70,11 @@ getNewPastes Pastie = do
     return $!! map (URL . T.pack) links
 
 getNewPastes SkidPaste = do
-    links <- getPage "http://skidpaste.org/index.html" (css "div[id=sidemenu] ul[class=submenu] a" ! "href")
-    return $!! map (URL . T.pack) $ filter (/= "") links
+    links <- getPage "http://skidpaste.org" (css "ul[class=ipsList_withminiphoto] a" ! "href")
+    return $!! map (URL . T.pack . ("http://skidpaste.org/" ++))  links
 
 getNewPastes Slexy = do
-    links <- getPage "http://slexy.org" (css "li a" ! "href")
+    links <- getPage "http://slexy.org/recent" (css "div[class=main] tr a" ! "href")
     return $!! map (URL . T.pack . ("http://slexy.org" ++)) links
 
 getNewPastes Snipt = do

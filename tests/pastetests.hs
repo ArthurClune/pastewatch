@@ -47,7 +47,7 @@ getPasteTests = [("get pastebin", "@example.com", "testing @example.com testing\
                 ("get snipt", "@example.com", "testing @example.com testing\n",
                    Snipt, URL "http://snipt.org/zkfe8/plaintext"),
                 ("get skidpaste", "@example.com",
-                   "\ntesting @example.com testingParsed in 0.000 seconds\n",
+                   "testing @example.com testing\n",
                    SkidPaste, URL "http://skidpaste.org/3cOMCRpA")
                ]
 
