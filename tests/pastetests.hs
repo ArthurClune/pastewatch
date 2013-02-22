@@ -54,7 +54,7 @@ getPasteTests = [("get pastebin", "@example.com", "testing @example.com testing"
 stackOverflowTests = [ (Pastebin, URL "http://pastebin.com/9JyuyRGB") ]
 
 -- test the new paste functions don't return an empty list
-newPasteTests = map (\s -> TestCase $ assertBool ""
+newPasteTests = map (\s -> TestCase $ assertBool "Checking for non-empty getNewPastes"
                     (not $ null $ unsafePerformIO $ getNewPastes s))
                     [minBound..maxBound]
 
