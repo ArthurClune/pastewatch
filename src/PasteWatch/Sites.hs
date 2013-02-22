@@ -47,7 +47,7 @@ siteConfigs = Map.fromList [
 
 -- | Check contents of a URL against given check function
 -- Must be implemented for every new site
---
+-- Argument to doCheck' is a css selector to match the paste contents
 doCheck::Site
        -> URL
        -> (PasteContents->Maybe MatchText)
@@ -60,42 +60,52 @@ doCheck Snipt     = doCheck' (Just (css "textarea"))
 
 -- | Get all the new pastes from a given site
 -- Must be implemented for every new site
+-- args to be supplied are
+-- 1) URL for a page containing new/recent paste list
+-- 2) css expression to match that list
+-- 3) fn to make that list canonical and absolute URLs
 getNewPastes::Site -> IO [URL]
 
-getNewPastes Pastebin = do
-    links <- getURLWithFilter "http://pastebin.com/trends"
-                              (css "ul[class=right_menu] a" ! "href")
-    return $!! map (URL . T.pack . makeCanonical) links
-  where
-    makeCanonical u = "http://pastebin.com/raw.php?i=" ++ (filter (/='/') u)
+getNewPastes Pastebin =
+    getNewPastes' "http://pastebin.com/trends"
+                  (css "ul[class=right_menu] a" ! "href")
+                  (\u -> "http://pastebin.com/raw.php?i=" ++ filter (/='/') u)
 
-getNewPastes Pastie = do
-    links <- getURLWithFilter "http://www.pastie.org/pastes"
-                              (css "div[class=pastePreview] a" ! "href")
-    return $!! map (URL . T.pack . ( ++ "/text")) links
+getNewPastes Pastie =
+    getNewPastes' "http://www.pastie.org/pastes"
+                  (css "div[class=pastePreview] a" ! "href")
+                  (++ "/text")
 
-getNewPastes SkidPaste = do
-    links <- getURLWithFilter "http://skidpaste.org"
-                              (css "ul[class=ipsList_withminiphoto] a" ! "href")
-    return $!! map (URL . T.pack . (\u -> "http://skidpaste.org/" ++ u ++ ".txt"))  links
+getNewPastes SkidPaste =
+    getNewPastes' "http://skidpaste.org"
+                  (css "ul[class=ipsList_withminiphoto] a" ! "href")
+                  (\u -> "http://skidpaste.org/" ++ u ++ ".txt")
 
-getNewPastes Slexy = do
-    links <- getURLWithFilter "http://slexy.org/recent"
-                              (css "div[class=main] tr a" ! "href")
-    return $!! map (URL . T.pack . ("http://slexy.org" ++)) links
+getNewPastes Slexy =
+    getNewPastes' "http://slexy.org/recent"
+                  (css "div[class=main] tr a" ! "href")
+                  ("http://slexy.org" ++)
 
-getNewPastes Snipt = do
-    links <- getURLWithFilter "http://snipt.org/code/recent"
-                             (css "div[class=grid-block-container] a" ! "href")
-    return $!! map (URL. T.pack . (++ "/plaintext")) links
-
-
+getNewPastes Snipt =
+    getNewPastes' "http://snipt.org/code/recent"
+                  (css "div[class=grid-block-container] a" ! "href")
+                  (++ "/plaintext")
 
 -----------------------------------------------------------
 -- Nothing below here needs changing when adding a new site
 -----------------------------------------------------------
+getNewPastes'::URL -> IOSLA (XIOState ()) XmlTree String -> (String -> String) -> IO [URL]
+getNewPastes' url cssf makeCanonical = do
+  page <- fetchURL url
+  case page of
+      Left _ -> return []
+      Right doc -> do
+        links <- runX $ readString [ withTagSoup,
+                            withValidate no,
+                            withWarnings no]
+                            doc >>> cssf
+        return $!! map (URL . T.pack . makeCanonical) links
 
--- internal helper functions
 
 -- run check for matching text against the given url, using the cssfunc
 -- to filter the input if necessary first
@@ -119,11 +129,14 @@ doCheck' cssfunc url contentMatch  = do
 extractContent :: String
                -> Maybe (IOSLA (XIOState ()) XmlTree (NTree XNode))
                -> IO PasteContents
+
 extractContent page (Just cssfunc) = do
-    let doc = readString [ withTagSoup, withValidate no, withWarnings no] page
-    let fixLineEndings t = T.unlines $ map (T.dropWhileEnd (== '\r')) $ T.lines t
     !content <- runX . xshow $ doc >>> cssfunc >>> deep isText
     return $ PasteContents $ fixLineEndings $ T.pack $ head content
+  where
+    doc = readString [ withTagSoup, withValidate no, withWarnings no] page
+    fixLineEndings = T.unlines . map (T.dropWhileEnd (== '\r')) . T.lines
+
 extractContent page Nothing = return $ PasteContents $ T.pack page
 
 -- fetch a URL, trapping errors
@@ -144,19 +157,6 @@ fetchURL (URL url) = do
             (5, _, _) -> return $ Left RETRY
             _         -> return $ Left FAILED
 
--- get a URL, applying the given css filter function to it
-getURLWithFilter::URL -> IOSLA (XIOState ()) XmlTree a -> IO [a]
-getURLWithFilter url cssf = do
-  page <- fetchURL url
-  case page of
-      Left _ -> do
-        errorM "pastewatch.Sites.getURLWithFilter" $ "Error retrieving " ++ show url
-        return []
-      Right doc -> do
-        runX $ readString [ withTagSoup,
-                            withValidate no,
-                            withWarnings no]
-                            doc >>> cssf
 
 -- | Generate the Counters for a given site
 createCounters::Server -> Site -> IO Counters
