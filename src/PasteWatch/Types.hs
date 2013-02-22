@@ -85,9 +85,9 @@ instance NFData Host where rnf = genericRnf
 data LogDestination = LOGSTDERR | LOGSYSLOG | LOGBOTH deriving (Bounded, Enum, Eq)
 
 instance DCT.Configured LogDestination where
-    convert (DCT.String "both")   = Just $ LOGBOTH
-    convert (DCT.String "stderr") = Just $ LOGSTDERR
-    convert (DCT.String "syslog") = Just $ LOGSYSLOG
+    convert (DCT.String "both")   = Just LOGBOTH
+    convert (DCT.String "stderr") = Just LOGSTDERR
+    convert (DCT.String "syslog") = Just LOGSYSLOG
     convert _                     = Nothing
 
 -- | A line in a paste that we have alerted on
