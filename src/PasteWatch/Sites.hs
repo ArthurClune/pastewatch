@@ -145,11 +145,13 @@ fetchURL (URL url) = do
     !resp <- runEitherT $ tryIO $ simpleHTTP $ getRequest $ T.unpack url
     case resp of
         Left  e -> do
-                    errorM "pastewatch.Sites.fetchURL" $ "Error retrieving paste " ++ show e
+                    errorM "pastewatch.Sites.fetchURL" $ "Error retrieving paste " ++
+                            show url ++ " " ++ show e
                     return $ Left FAILED
         Right r -> case r of
           Left e -> do
-                      errorM "pastewatch.Sites.fetchURL" $ "Error retrieving paste " ++ show e
+                      errorM "pastewatch.Sites.fetchURL" $ "Error retrieving paste " ++
+                              show url ++ " " ++ show e
                       return $ Left FAILED
           Right r' -> case rspCode r' of
             (2, 0, 0) -> return $ Right $ rspBody r'
