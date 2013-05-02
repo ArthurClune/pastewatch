@@ -29,7 +29,7 @@ Library
                       deepseq-generics,
                       ekg, errors, ghc-prim, hashable, hashable-generics, hslogger,
                       HTTP, HandsomeSoup, hxt, hxt-tagsoup, mongoDB, mtl, network,
-                      old-locale, old-time, parallel-io, random, regexpr,
+                      old-locale, old-time, parallel-io, random, regex-pcre,
                       safe, stm, SMTPClient,
                       stm, text, time, transformers, unordered-containers
     ghc-options:      -Wall -O2 -funbox-strict-fields

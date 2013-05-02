@@ -6,13 +6,14 @@ module PasteWatch.Alert
    ) where
 
 import           Data.Maybe()
-import           Text.RegexPR
+import qualified Text.Regex.PCRE as RE
+--import           Text.Regex.PCRE.String ( (.=~) )
 
 import PasteWatch.Types
 
 -- | If the given Paste includes our pattern, return the one that matched
 checkContent::String -> PasteContents -> Maybe MatchText
-checkContent regex (PasteContents s) =
-  case matchRegexPR regex s of
-    Just ((matchString,(_)),_) -> Just $ MatchText matchString
-    Nothing                     -> Nothing
+checkContent r (PasteContents s) = do
+  case (s RE.=~ r :: String) of
+    ""    -> Nothing
+    match -> Just $ MatchText match
