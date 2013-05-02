@@ -91,12 +91,14 @@ instance DCT.Configured LogDestination where
     convert _                     = Nothing
 
 -- | A line in a paste that we have alerted on
-newtype MatchText = MatchText String deriving (Eq, Generic, IsString, Show, Typeable, DB.Val)
+newtype MatchText = MatchText T.Text
+  deriving (Eq, Generic, IsString, Show, Typeable, DB.Val)
 
 instance NFData MatchText where rnf = genericRnf
 
 -- | Plain text contents of a paste
-newtype PasteContents = PasteContents String deriving (Eq, Generic, IsString, Show, Typeable, DB.Val)
+newtype PasteContents = PasteContents T.Text
+  deriving (Eq, Generic, IsString, Show, Typeable, DB.Val)
 
 instance NFData PasteContents where rnf = genericRnf
 
@@ -186,7 +188,7 @@ type SiteConfigs = Map.HashMap Site SiteConfig
 -- | Type to hold user config
 data UserConfig = UserConfig {
      -- | Regular expression to alert on if seen in a paste
-    alertRe        :: !String,
+    alertRe        :: !T.Text,
     -- | Should we send alerts to the DB?
     alertToDB      :: !Bool,
     -- | Should we send email alerts?

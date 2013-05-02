@@ -76,9 +76,10 @@ runStackOverflowTest (site, url) = TestCase $ assertEqual "Testing stackoverflow
 main::IO ()
 main =
     do c1 <- runTestTT $ TestList $ map runMatchTest matchTests
-       c2 <- runTestTT $ TestList $ map runGetPasteTest getPasteTests
-       c3 <- runTestTT $ TestList newPasteTests
-       c4 <- runTestTT $ TestList $ map runStackOverflowTest stackOverflowTests
-       if any (\x -> errors x /= 0 || failures x /= 0) [c1, c2, c3, c4]
+       --c2 <- runTestTT $ TestList $ map runGetPasteTest getPasteTests
+       --c3 <- runTestTT $ TestList newPasteTests
+       --c4 <- runTestTT $ TestList $ map runStackOverflowTest stackOverflowTests
+       --if any (\x -> errors x /= 0 || failures x /= 0) [c1, c2, c3, c4]
+       if any (\x -> errors x /= 0 || failures x /= 0) [c1]
             then exitFailure
             else exitSuccess

@@ -132,12 +132,12 @@ extractContent :: String
 
 extractContent page (Just cssfunc) = do
     !content <- runX . xshow $ doc >>> cssfunc >>> deep isText
-    return $ PasteContents $ fixLineEndings $ head content
+    return $ PasteContents $ fixLineEndings $ T.pack $ head content
   where
     doc = readString [ withTagSoup, withValidate no, withWarnings no] page
-    fixLineEndings = unlines . map (dropWhile (== '\r')) . lines
+    fixLineEndings = T.unlines . map (T.dropWhileEnd (== '\r')) . T.lines
 
-extractContent page Nothing = return $ PasteContents page
+extractContent page Nothing = return $ PasteContents (T.pack page)
 
 -- fetch a URL, trapping errors
 fetchURL :: URL -> IO (Either ResultCode String)

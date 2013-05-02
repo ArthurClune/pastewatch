@@ -26,6 +26,17 @@ Monitoring is available on http://localhost:8000
 This is currently not authenticated - set firewall rules suitably!
 
 
+Compilation on OS X
+===================
+
+You'll need to install the ICU libraries. The easiest way is using HomeBrew:
+```
+brew install icu4c
+cabal-dev install text-icu --extra-include-dirs=/usr/local/opt/icu4c/include --extra-lib-dirs=/usr/local/opt/icu4c/lib
+```
+
+then proceed as above.
+
 Database Support
 ----------------
 

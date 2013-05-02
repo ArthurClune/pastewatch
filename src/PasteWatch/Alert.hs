@@ -5,15 +5,20 @@ module PasteWatch.Alert
      checkContent
    ) where
 
-import           Data.Maybe()
-import qualified Text.Regex.PCRE as RE
---import           Text.Regex.PCRE.String ( (.=~) )
+import           Data.Maybe
+import qualified Data.Text as T
+import           Data.Text.ICU
 
 import PasteWatch.Types
 
--- | If the given Paste includes our pattern, return the one that matched
-checkContent::String -> PasteContents -> Maybe MatchText
-checkContent r (PasteContents s) = do
-  case (s RE.=~ r :: String) of
-    ""    -> Nothing
-    match -> Just $ MatchText match
+-- | If the given Paste includes our pattern, return the match
+checkContent::T.Text -> PasteContents -> Maybe MatchText
+checkContent r (PasteContents s) =
+    case find (regex [] r) s of
+      Just m' -> Just $ MatchText (fromJust $ group 0 m')
+      Nothing -> Nothing
+
+--checkContent r (PasteContents s) = do
+--  case (s RE.=~ r :: T.Text) of
+--    ""    -> Nothing
+--    match -> Just $ MatchText match

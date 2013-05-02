@@ -295,6 +295,7 @@ pastewatch = do
     mapM_ (spawnWorkerThread errorv jobs config dbPipe) seeds
     mapM_ (spawnControlThread ekg jobs) [minBound .. maxBound]
     _ <- atomically $ takeTMVar errorv
+    --threadDelay 10000000
     exitWith (ExitFailure 1)
   where
 
