@@ -13,7 +13,7 @@ import           System.IO.Unsafe  (unsafePerformIO)
 import           PasteWatch.Sites
 import           PasteWatch.Types  hiding (UserConfig(..))
 
-alertRe   = "@example.com|@sub.example.com|(?<!New )University"
+alertRe   = "@example.com|@sub.example.com|(?i)(?<!New )University(?-i)"
 
 checkContentF s = case checkContent alertRe s of
     Nothing  -> True
@@ -35,7 +35,7 @@ matchTests = [("Test single line T1", checkContentT "stuff in a@example.com dsfd
               ("Test multi line T1",  checkContentT "one line\ntwo line\ntree @sub.example.com line" "@sub.example.com"),
               ("Test multi line F1",  checkContentF "one line  \n two line"),
               ("Test singe line F2",  checkContentF "some text about a company doing stuff"),
-              ("Test look behind T1", checkContentT "the University of dork" "University"),
+              ("Test look behind T1", checkContentT "the university of dork" "university"),
               ("Test look behind F1", checkContentF "the New University of stuff")
            ]
 
