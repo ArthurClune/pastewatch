@@ -13,14 +13,13 @@ import           System.IO.Unsafe  (unsafePerformIO)
 import           PasteWatch.Sites
 import           PasteWatch.Types  hiding (UserConfig(..))
 
-alertStrings   = ["@example.com", "@sub.example.com"]
-alertStringsCI = ["my company inc"]
+alertRe   = "@example.com|@sub.example.com"
 
-checkContentF s = case checkContent alertStrings alertStringsCI s of
+checkContentF s = case checkContent alertRe s of
     Nothing  -> True
     Just  _  -> False
 
-checkContentT s r = case checkContent alertStrings alertStringsCI s of
+checkContentT s r = case checkContent alertRe s of
     Nothing             -> False
     Just (MatchText s') -> s' == r
 
@@ -28,7 +27,7 @@ checkContentT s r = case checkContent alertStrings alertStringsCI s of
 -- using unsafePerformIO here means that the
 -- tests will fail if no internet connectivity is available
 unsafeDoCheck site url = unsafePerformIO $
-                            doCheck site url (checkContent alertStrings alertStringsCI)
+                            doCheck site url (checkContent alertRe)
 
 matchTests = [("Test single line T1", checkContentT "stuff in a@example.com dsfd" "@example.com"),
               ("Test single line F1", checkContentF "some content in here"),
@@ -68,10 +67,8 @@ runStackOverflowTest (site, url) = TestCase $ assertEqual "Testing stackoverflow
   where
     runCheck = fst3 $ unsafePerformIO $
       handle (\StackOverflow -> return (STACK_OVERFLOW, Nothing, Nothing))
-             $ doCheck site url (checkContent alertStrings alertStringsCI)
-
-fst3 (a, b, c) = a
-
+             $ doCheck site url (checkContent alertRe)
+    fst3 (a, _, _) = a
 
 
 main::IO ()

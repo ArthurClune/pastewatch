@@ -271,7 +271,7 @@ spawnWorkerThread errorv jobs conf dbPipe seed =
         (void $ execWorker checkone (WorkerState errorv jobs checkf (mkStdGen seed) dbPipe dbName') conf)
   where
     dbName' = dbName conf
-    checkf = checkContent (alertStrings conf) (alertStringsCI conf)
+    checkf = checkContent (alertRe conf)
 
 ---------------------------------------------------
 -- | main

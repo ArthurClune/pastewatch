@@ -104,7 +104,7 @@ getNewPastes' url cssf makeCanonical = do
                             withValidate no,
                             withWarnings no]
                             doc >>> cssf
-        return $!! map (URL . T.pack . makeCanonical) links
+        return $!! map (URL . makeCanonical) links
 
 
 -- run check for matching text against the given url, using the cssfunc
@@ -132,17 +132,17 @@ extractContent :: String
 
 extractContent page (Just cssfunc) = do
     !content <- runX . xshow $ doc >>> cssfunc >>> deep isText
-    return $ PasteContents $ fixLineEndings $ T.pack $ head content
+    return $ PasteContents $ fixLineEndings $ head content
   where
     doc = readString [ withTagSoup, withValidate no, withWarnings no] page
-    fixLineEndings = T.unlines . map (T.dropWhileEnd (== '\r')) . T.lines
+    fixLineEndings = unlines . map (dropWhile (== '\r')) . lines
 
-extractContent page Nothing = return $ PasteContents $ T.pack page
+extractContent page Nothing = return $ PasteContents page
 
 -- fetch a URL, trapping errors
 fetchURL :: URL -> IO (Either ResultCode String)
 fetchURL (URL url) = do
-    !resp <- runEitherT $ tryIO $ simpleHTTP $ getRequest $ T.unpack url
+    !resp <- runEitherT $ tryIO $ simpleHTTP $ getRequest url
     case resp of
         Left  e -> do
                     errorM "pastewatch.Sites.fetchURL" $ "Error retrieving paste " ++

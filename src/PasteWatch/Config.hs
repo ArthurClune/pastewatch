@@ -32,8 +32,7 @@ parseConfig file = do
         putStrLn $ "Error loading config file: " ++  c'
         exitWith (ExitFailure 1)
     Right c' ->
-        UserConfig <$> require c' "alertStrings"
-                     <*> require c' "alertStringsCI"
+        UserConfig <$> require c' "alertRe"
                      <*> require c' "alertToDB"
                      <*> require c' "alertToEmail"
                      <*> require c' "dbHost"

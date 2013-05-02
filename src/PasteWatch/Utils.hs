@@ -6,7 +6,6 @@ module PasteWatch.Utils
     ) where
 
 import           Data.IORef
-import qualified Data.Text as T
 import           Network.SMTP.Client
 import           Network.Socket
 import           System.Time         (getClockTime, toCalendarTime)
@@ -46,15 +45,11 @@ sendEmail (Email sender)
     sendSMTP (Just sentRef) myDomain' sockAddr [message]
     return ()
   where
-    myDomain'    = stripQuotesT myDomain
-    recipients'  = map (toName . ( \(Email x) -> ("", stripQuotesT x))) recipients
-    sender'      = [toName ("", stripQuotesT sender)]
-    smtpServer'  = stripQuotesT smtpServer
+    myDomain'    = stripQuotes myDomain
+    recipients'  = map (toName . ( \(Email x) -> ("", stripQuotes x))) recipients
+    sender'      = [toName ("", stripQuotes sender)]
+    smtpServer'  = stripQuotes smtpServer
     toName (n,e) = NameAddr (Just n) e
-
--- | Remove outmost double quotes from a string
-stripQuotesT::T.Text -> String
-stripQuotesT = stripQuotes . show
 
 stripQuotes::String -> String
 stripQuotes ('"':s)  | last s == '"'  = init s

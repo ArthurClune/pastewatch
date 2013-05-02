@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveGeneric, DeriveDataTypeable, GeneralizedNewtypeDeriving, OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric, DeriveDataTypeable, FlexibleInstances, GeneralizedNewtypeDeriving, OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- | Core types
@@ -55,28 +55,28 @@ import           System.Random
 --------------------------------------------------------------
 
 -- | A domain (e.g. "example.com")
-newtype Domain = Domain T.Text deriving (Eq, Generic, IsString, Show)
+newtype Domain = Domain String deriving (Eq, Generic, IsString, Show)
 
 instance DCT.Configured Domain where
-    convert (DCT.String v) = Just $ Domain v
+    convert (DCT.String v) = Just $ Domain (T.unpack v)
     convert _              = Nothing
 
 instance NFData Domain where rnf = genericRnf
 
 -- | Email address (e.g. "fred@example.com")
-newtype Email = Email T.Text deriving (Eq, Generic, IsString, Show)
+newtype Email = Email String deriving (Eq, Generic, IsString, Show)
 
 instance DCT.Configured Email where
-    convert (DCT.String v) = Just $ Email v
+    convert (DCT.String v) = Just $ Email (T.unpack v)
     convert _              = Nothing
 
 instance NFData Email where rnf = genericRnf
 
 -- | A hostname (e.g. smtp.example.com)
-newtype Host = Host T.Text deriving (Eq, Generic, IsString, Show)
+newtype Host = Host String deriving (Eq, Generic, IsString, Show)
 
 instance DCT.Configured Host where
-    convert (DCT.String v) = Just $ Host v
+    convert (DCT.String v) = Just $ Host (T.unpack v)
     convert _              = Nothing
 
 instance NFData Host where rnf = genericRnf
@@ -91,12 +91,12 @@ instance DCT.Configured LogDestination where
     convert _                     = Nothing
 
 -- | A line in a paste that we have alerted on
-newtype MatchText = MatchText T.Text deriving (Eq, Generic, IsString, Show, Typeable, DB.Val)
+newtype MatchText = MatchText String deriving (Eq, Generic, IsString, Show, Typeable, DB.Val)
 
 instance NFData MatchText where rnf = genericRnf
 
 -- | Plain text contents of a paste
-newtype PasteContents = PasteContents T.Text deriving (Eq, Generic, IsString, Show, Typeable, DB.Val)
+newtype PasteContents = PasteContents String deriving (Eq, Generic, IsString, Show, Typeable, DB.Val)
 
 instance NFData PasteContents where rnf = genericRnf
 
@@ -113,17 +113,17 @@ getCtr::ResultCode -> Counters -> Counter
 getCtr rc ctrs = ctrs !! fromEnum rc
 
 -- | Simple type to store URLs
-newtype URL = URL T.Text deriving (Eq, Generic, Hashable, IsString, Show, Typeable, DB.Val)
+newtype URL = URL String deriving (Eq, Generic, Hashable, IsString, Show, Typeable, DB.Val)
 
 instance DCT.Configured URL where
-    convert (DCT.String v) = Just $ URL v
+    convert (DCT.String v) = Just $ URL (T.unpack v)
     convert _              = Nothing
 
 instance NFData URL where rnf = genericRnf
 
 -- | Config instance for MongoDB.Host
 instance DCT.Configured DB.Host where
-    convert (DCT.String h) = Just $ DB.host $ T.unpack h
+    convert (DCT.String h) = Just $ DB.host (T.unpack h)
     convert _              = Nothing
 
 instance DCT.Configured Log.Priority where
@@ -132,7 +132,7 @@ instance DCT.Configured Log.Priority where
     convert (DCT.String "error") = Just Log.ERROR
     convert _                    = Nothing
 
-instance DCT.Configured a => DCT.Configured [a] where
+instance DCT.Configured [Email] where
     convert (DCT.List xs) = mapM DCT.convert xs
     convert _             = Nothing
 
@@ -185,10 +185,8 @@ type SiteConfigs = Map.HashMap Site SiteConfig
 
 -- | Type to hold user config
 data UserConfig = UserConfig {
-     -- | Strings to alert on (case sensitive) if seen in a paste
-    alertStrings   :: ![T.Text],
-    -- | Strings to alert on (case insensitive) if seen in a paste
-    alertStringsCI :: ![T.Text],
+     -- | Regular expression to alert on if seen in a paste
+    alertRe        :: !String,
     -- | Should we send alerts to the DB?
     alertToDB      :: !Bool,
     -- | Should we send email alerts?
