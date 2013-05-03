@@ -20,7 +20,7 @@ executable pastewatch
   build-depends:       base ==4.5.*, pastewatch
 
 Library
-    Exposed-Modules:  PasteWatch.Alert, PasteWatch.Config, PasteWatch.Core,
+    Exposed-Modules:  PasteWatch.Config, PasteWatch.Core,
                       PasteWatch.Sites, PasteWatch.Types,
                       PasteWatch.Utils
     hs-source-dirs:   src

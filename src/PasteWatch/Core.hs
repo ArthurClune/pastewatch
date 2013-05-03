@@ -39,9 +39,9 @@ import qualified System.Remote.Gauge as SRG
 import qualified System.Remote.Label as SRL
 import           System.Remote.Monitoring   (forkServer, getLabel, Server)
 
-import PasteWatch.Alert  (checkContent)
 import PasteWatch.Config (parseArgs, parseConfig)
-import PasteWatch.Sites  (createCounters, createGauges, doCheck, getNewPastes, siteConfigs)
+import PasteWatch.Sites  (checkContent, createCounters, createGauges, doCheck,
+                          getNewPastes, siteConfigs)
 import PasteWatch.Types
 import PasteWatch.Utils  (sendEmail)
 

@@ -5,7 +5,6 @@ import           Control.Monad
 import           Data.Monoid       (mconcat)
 import           Data.Maybe
 import qualified Data.Text as T
-import           PasteWatch.Alert  (checkContent)
 import           Test.HUnit
 import           System.Exit      (exitFailure, exitSuccess)
 import           System.IO.Unsafe  (unsafePerformIO)

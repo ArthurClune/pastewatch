@@ -4,6 +4,7 @@
 -- Contains all the special case code that differs per site
 module PasteWatch.Sites
     (
+        checkContent,
         createCounters,
         createGauges,
         doCheck,
@@ -17,13 +18,15 @@ import           Control.DeepSeq            ( ($!!) )
 import           Control.Error
 import           Control.Exception          (AsyncException(StackOverflow), handle)
 import qualified Data.HashMap.Strict as Map
-import           Text.HandsomeSoup          ((!), css)
+import           Data.Maybe                 (fromJust)
 import qualified Data.Text as T
+import qualified Data.Text.ICU as ICU
 import           Data.Tree.NTree.TypeDefs
 import           Network.HTTP
 import           System.Log.Logger
 import           System.Remote.Gauge        (Gauge)
 import           System.Remote.Monitoring   (getCounter, getGauge, Server)
+import           Text.HandsomeSoup          ((!), css)
 import           Text.XML.HXT.Core hiding   (trace)
 import           Text.XML.HXT.TagSoup
 
@@ -173,3 +176,11 @@ createGauges::Server -> Site -> IO Gauge
 createGauges srv sitet = getGauge label srv
   where
       label = T.pack $ (stripQuotes . show $ sitet) ++ "Hash Length"
+
+
+-- | If the given Paste includes our pattern, return the match
+checkContent::T.Text -> PasteContents -> Maybe MatchText
+checkContent r (PasteContents s) =
+    case ICU.find (ICU.regex [] r) s of
+      Just m' -> Just $ MatchText (fromJust $ ICU.group 0 m')
+      Nothing -> Nothing
