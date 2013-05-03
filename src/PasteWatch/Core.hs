@@ -51,6 +51,7 @@ import PasteWatch.Utils  (sendEmail)
 
 -- | email the admins
 -- If we get an error, just throw away this message, report the error and keep going
+-- The smtp standard requies '\r\n' for EOL not '\n' so we fix that up here as well
 emailFile::Bool
          -> ( ResultCode->IO () )
          -> URL
@@ -58,18 +59,20 @@ emailFile::Bool
          -> PasteContents
          -> Worker ()
 emailFile False _ _ _ _ = return ()
-emailFile True sendResult url match content = do
+emailFile True sendResult url match (PasteContents content) = do
     UserConfig{..} <- ask
     liftIO $ do
         debugM "pastewatch.emailFile" $ "Sending email for " ++ show url
         res <- runEitherT $ tryIO $ sendEmail sender recipients domain smtpServer
                                        ("Pastebin alert. Match on " ++ show match)
-                                       (show url ++ "\n\n" ++ show content)
+                                       (show url ++ "\r\n\r\n" ++ mailbody)
         case res of
             Left  e -> do
                         errorM "pastewatch.emailFile" $ "Error sending email " ++ show e
                         sendResult SMTP_ERR
             Right _ -> return ()
+  where
+    mailbody = T.unpack $ T.unlines $ map (\u -> T.snoc u '\r') (T.lines content)
 
 -- | Store matching paste in DB
 -- If we get a DB error, kill the program
