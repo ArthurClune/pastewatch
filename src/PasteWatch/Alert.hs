@@ -17,8 +17,3 @@ checkContent r (PasteContents s) =
     case find (regex [] r) s of
       Just m' -> Just $ MatchText (fromJust $ group 0 m')
       Nothing -> Nothing
-
---checkContent r (PasteContents s) = do
---  case (s RE.=~ r :: T.Text) of
---    ""    -> Nothing
---    match -> Just $ MatchText match
