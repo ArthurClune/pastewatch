@@ -293,9 +293,7 @@ pastewatch = do
     let seeds = randomlist (nthreads config) seed
     infoM "pastewatch.main" "Starting"
     mapM_ (spawnWorkerThread errorv jobs config dbPipe) seeds
-    --mapM_ (spawnControlThread ekg jobs) [minBound .. maxBound]
-    -- Slexy broken for now. HXT blows up
-    mapM_ (spawnControlThread ekg jobs) [Pastebin, Pastie, SkidPaste, Snipt]
+    mapM_ (spawnControlThread ekg jobs) [minBound .. maxBound]
     _ <- atomically $ takeTMVar errorv
     exitWith (ExitFailure 1)
   where

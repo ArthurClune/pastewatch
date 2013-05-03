@@ -23,6 +23,8 @@ import qualified Data.Text as T
 import qualified Data.Text.ICU as ICU
 import           Data.Tree.NTree.TypeDefs
 import           Network.HTTP
+import           Network.URI                (parseURI)
+import           System.Exit                (exitWith, ExitCode(..))
 import           System.Log.Logger
 import           System.Remote.Gauge        (Gauge)
 import           System.Remote.Monitoring   (getCounter, getGauge, Server)
@@ -55,11 +57,12 @@ doCheck::Site
        -> URL
        -> (PasteContents->Maybe MatchText)
        -> IO (ResultCode, Maybe MatchText, Maybe PasteContents)
-doCheck Pastebin  = doCheck' Nothing
-doCheck Pastie    = doCheck' (Just (css "pre"))
-doCheck SkidPaste = doCheck' Nothing
-doCheck Slexy     = doCheck' (Just (css "div[class=text]"))
-doCheck Snipt     = doCheck' (Just (css "textarea"))
+doCheck Pastebin  url = doCheck' url Nothing Nothing
+doCheck Pastie    url = doCheck' url (Just $ css "pre") Nothing
+doCheck SkidPaste url = doCheck' url Nothing Nothing
+doCheck Slexy (URL u) = doCheck' (URL u) Nothing
+                                 (Just $ URL ("http://slexy.org/view/" ++ (drop 21 u)))
+doCheck Snipt     url = doCheck' url (Just $ css "textarea") Nothing
 
 -- | Get all the new pastes from a given site
 -- Must be implemented for every new site
@@ -87,7 +90,7 @@ getNewPastes SkidPaste =
 getNewPastes Slexy =
     getNewPastes' "http://slexy.org/recent"
                   (css "div[class=main] tr a" ! "href")
-                  ("http://slexy.org" ++)
+                  (\u -> "http://slexy.org/raw/" ++ (drop 6 u))
 
 getNewPastes Snipt =
     getNewPastes' "http://snipt.org/code/recent"
@@ -99,7 +102,7 @@ getNewPastes Snipt =
 -----------------------------------------------------------
 getNewPastes'::URL -> IOSLA (XIOState ()) XmlTree String -> (String -> String) -> IO [URL]
 getNewPastes' url cssf makeCanonical = do
-  page <- fetchURL url
+  page <- fetchURL url Nothing
   case page of
       Left _ -> return []
       Right doc -> do
@@ -112,12 +115,14 @@ getNewPastes' url cssf makeCanonical = do
 
 -- run check for matching text against the given url, using the cssfunc
 -- to filter the input if necessary first
-doCheck'::Maybe (IOSLA (XIOState ()) (NTree XNode) (NTree XNode))
-        -> URL
+-- If referer is given, the request is sent with that referer
+doCheck'::URL
+        -> Maybe (IOSLA (XIOState ()) (NTree XNode) (NTree XNode))
+        -> Maybe URL
         -> (PasteContents->Maybe MatchText)
         -> IO (ResultCode, Maybe MatchText, Maybe PasteContents)
-doCheck' cssfunc url contentMatch  = do
-    !res <- fetchURL url
+doCheck' url cssfunc referer contentMatch  = do
+    !res <- fetchURL url referer
     case res of
         Left  e   -> return (e, Nothing, Nothing)
         Right page -> handle (\StackOverflow -> return (STACK_OVERFLOW, Nothing, Nothing))
@@ -143,9 +148,23 @@ extractContent page (Just cssfunc) = do
 extractContent page Nothing = return $ PasteContents (T.pack page)
 
 -- fetch a URL, trapping errors
-fetchURL :: URL -> IO (Either ResultCode String)
-fetchURL (URL url) = do
-    !resp <- runEitherT $ tryIO $ simpleHTTP $ getRequest url
+-- if given a referer, set this in the request
+fetchURL :: URL -> Maybe URL -> IO (Either ResultCode String)
+fetchURL (URL url) referer = do
+    !resp <- case referer of
+        Nothing -> runEitherT $ tryIO $ simpleHTTP $ getRequest url
+        Just (URL r)  -> do
+          case parseURI url of
+              Just u -> do
+                  let req' = defaultGETRequest u
+                  let req = req' {rqHeaders = rqHeaders req' ++ [Header HdrReferer r]}
+                  runEitherT $ tryIO $
+                          simpleHTTP (normalizeRequest defaultNormalizeRequestOptions req)
+              Nothing -> do
+                  errorM "pastewatch.Sites.fetchURL" $
+                         "Can't create normalised URI from " ++ url
+                  _ <- exitWith (ExitFailure 1)
+                  return $ Left undefined -- not reached: just to get the types to match
     case resp of
         Left  e -> do
                     errorM "pastewatch.Sites.fetchURL" $ "Error retrieving paste " ++

@@ -42,8 +42,8 @@ getPasteTests = [("get pastebin", "@example.com", "testing @example.com testing"
                    Pastebin, URL "http://pastebin.com/raw.php?i=bLFduQqs"),
                 ("get pastie", "@example.com", "\ntesting @example.com testing\n",
                    Pastie, URL "http://pastie.org/pastes/5406980/text"),
-                ("get slexy", "@example.com", "testing @example.com testing\n",
-                   Slexy, URL "http://slexy.org/view/s2Fv9q8J2H"),
+                ("get slexy", "@example.com", "testing @example.com testing",
+                   Slexy, URL "http://slexy.org/raw/s2Fv9q8J2H"),
                 ("get snipt", "@example.com", "testing @example.com testing\n",
                    Snipt, URL "http://snipt.org/zkfe8/plaintext"),
                 ("get skidpaste", "@example.com",
@@ -75,10 +75,9 @@ runStackOverflowTest (site, url) = TestCase $ assertEqual "Testing stackoverflow
 main::IO ()
 main =
     do c1 <- runTestTT $ TestList $ map runMatchTest matchTests
-       --c2 <- runTestTT $ TestList $ map runGetPasteTest getPasteTests
-       --c3 <- runTestTT $ TestList newPasteTests
-       --c4 <- runTestTT $ TestList $ map runStackOverflowTest stackOverflowTests
-       --if any (\x -> errors x /= 0 || failures x /= 0) [c1, c2, c3, c4]
-       if any (\x -> errors x /= 0 || failures x /= 0) [c1]
+       c2 <- runTestTT $ TestList $ map runGetPasteTest getPasteTests
+       c3 <- runTestTT $ TestList newPasteTests
+       c4 <- runTestTT $ TestList $ map runStackOverflowTest stackOverflowTests
+       if any (\x -> errors x /= 0 || failures x /= 0) [c1, c2, c3, c4]
             then exitFailure
             else exitSuccess
