@@ -72,7 +72,7 @@ emailFile True sendResult url match (PasteContents content) = do
                         sendResult SMTP_ERR
             Right _ -> return ()
   where
-    mailbody = T.unpack $ T.unlines $ map (\u -> T.snoc u '\r') (T.lines content)
+    mailbody = T.unpack $ T.unlines $ map (`T.snoc` '\r') (T.lines content)
 
 -- | Store matching paste in DB
 -- If we get a DB error, kill the program

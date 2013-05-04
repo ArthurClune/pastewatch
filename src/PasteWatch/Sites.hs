@@ -24,7 +24,6 @@ import qualified Data.Text.ICU as ICU
 import           Data.Tree.NTree.TypeDefs
 import           Network.HTTP
 import           Network.URI                (parseURI)
-import           System.Exit                (exitWith, ExitCode(..))
 import           System.Log.Logger
 import           System.Remote.Gauge        (Gauge)
 import           System.Remote.Monitoring   (getCounter, getGauge, Server)
@@ -52,7 +51,10 @@ siteConfigs = Map.fromList [
 
 -- | Check contents of a URL against given check function
 -- Must be implemented for every new site
--- Argument to doCheck' is a css selector to match the paste contents
+-- Arguments to doCheck' are:
+-- the URL
+-- a css selector to match the paste contents
+-- Maybe (a url to give as the referer)
 doCheck::Site
        -> URL
        -> (PasteContents->Maybe MatchText)
@@ -61,7 +63,7 @@ doCheck Pastebin  url = doCheck' url Nothing Nothing
 doCheck Pastie    url = doCheck' url (Just $ css "pre") Nothing
 doCheck SkidPaste url = doCheck' url Nothing Nothing
 doCheck Slexy (URL u) = doCheck' (URL u) Nothing
-                                 (Just $ URL ("http://slexy.org/view/" ++ (drop 21 u)))
+                                 (Just $ URL ("http://slexy.org/view/" ++ drop 21 u))
 doCheck Snipt     url = doCheck' url (Just $ css "textarea") Nothing
 
 -- | Get all the new pastes from a given site
@@ -90,7 +92,7 @@ getNewPastes SkidPaste =
 getNewPastes Slexy =
     getNewPastes' "http://slexy.org/recent"
                   (css "div[class=main] tr a" ! "href")
-                  (\u -> "http://slexy.org/raw/" ++ (drop 6 u))
+                  (\u -> "http://slexy.org/raw/" ++ drop 6 u)
 
 getNewPastes Snipt =
     getNewPastes' "http://snipt.org/code/recent"
@@ -142,7 +144,7 @@ extractContent page (Just cssfunc) = do
     !content <- runX . xshow $ doc >>> cssfunc >>> deep isText
     return $ PasteContents $ fixLineEndings $ T.pack $ head content
   where
-    doc = readString [ withTagSoup, withValidate no, withWarnings no] page
+    doc = readString [withTagSoup, withValidate no, withWarnings no] page
     fixLineEndings = T.unlines . map (T.dropWhileEnd (== '\r')) . T.lines
 
 extractContent page Nothing = return $ PasteContents (T.pack page)
@@ -151,36 +153,41 @@ extractContent page Nothing = return $ PasteContents (T.pack page)
 -- if given a referer, set this in the request
 fetchURL :: URL -> Maybe URL -> IO (Either ResultCode String)
 fetchURL (URL url) referer = do
-    !resp <- case referer of
-        Nothing -> runEitherT $ tryIO $ simpleHTTP $ getRequest url
-        Just (URL r)  -> do
-          case parseURI url of
-              Just u -> do
-                  let req' = defaultGETRequest u
-                  let req = req' {rqHeaders = rqHeaders req' ++ [Header HdrReferer r]}
-                  runEitherT $ tryIO $
-                          simpleHTTP (normalizeRequest defaultNormalizeRequestOptions req)
-              Nothing -> do
-                  errorM "pastewatch.Sites.fetchURL" $
-                         "Can't create normalised URI from " ++ url
-                  _ <- exitWith (ExitFailure 1)
-                  return $ Left undefined -- not reached: just to get the types to match
-    case resp of
-        Left  e -> do
+    let req' = createReq url referer
+    case req' of
+        Nothing -> do
+            errorM "pastewatch.Sites.fetchURL" $
+                  "Can't create normalised URI from " ++ url
+            return $ Left FAILED
+        Just req -> do
+            !resp <- runEitherT $ tryIO $ simpleHTTP req
+            case resp of
+                Left  e -> do
                     errorM "pastewatch.Sites.fetchURL" $ "Error retrieving paste " ++
                             show url ++ " " ++ show e
                     return $ Left FAILED
-        Right r -> case r of
-          Left e -> do
-                      errorM "pastewatch.Sites.fetchURL" $ "Error retrieving paste " ++
-                              show url ++ " " ++ show e
-                      return $ Left FAILED
-          Right r' -> case rspCode r' of
-            (2, 0, 0) -> return $ Right $ rspBody r'
-            (4, 0, 8) -> return $ Left RETRY
-            (5, _, _) -> return $ Left RETRY
-            _         -> return $ Left FAILED
+                Right r -> case r of
+                    Left e -> do
+                        errorM "pastewatch.Sites.fetchURL" $ "Error retrieving paste " ++
+                                show url ++ " " ++ show e
+                        return $ Left FAILED
+                    Right r' -> case rspCode r' of
+                        (2, 0, 0) -> return $ Right $ rspBody r'
+                        (4, 0, 8) -> return $ Left RETRY
+                        (5, _, _) -> return $ Left RETRY
+                        _         -> return $ Left FAILED
 
+createReq :: String -> Maybe URL -> Maybe Request_String
+createReq url referer =
+    case referer of
+        Nothing -> Just (getRequest url)
+        Just (URL r) ->
+            case parseURI url of
+                Just u -> do
+                    let req' = defaultGETRequest u
+                    let req = req' {rqHeaders = rqHeaders req' ++ [Header HdrReferer r]}
+                    Just (normalizeRequest defaultNormalizeRequestOptions req)
+                Nothing -> Nothing
 
 -- | Generate the Counters for a given site
 createCounters::Server -> Site -> IO Counters
