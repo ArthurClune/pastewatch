@@ -5,7 +5,6 @@ module PasteWatch.Utils
       stripQuotes
     ) where
 
-import           Data.IORef
 import           Network.SMTP.Client
 import           Network.Socket
 import           System.Time         (getClockTime, toCalendarTime)
@@ -39,10 +38,7 @@ sendEmail (Email sender)
             ]
             content
     addrs <- getAddrInfo Nothing (Just smtpServer') Nothing
-    let SockAddrInet _ hostAddr = addrAddress (head addrs)
-        sockAddr = SockAddrInet 25 hostAddr
-    sentRef <- newIORef []
-    sendSMTP (Just sentRef) myDomain' sockAddr [message]
+    sendSMTP Nothing myDomain' addrs [message]
     return ()
   where
     myDomain'    = stripQuotes myDomain
