@@ -28,7 +28,7 @@ sudo cp sample.config /etc/pastewatch.conf
 sudo cp extras/ubuntu_init_script.sh /etc/init.d/pastewatch
 
 sudo rm -f /usr/share/ekg-*/assets/*
-sudo cp assets/ekg/assets/* /usr/share/ekg-*/assets/
+sudo cp -r assets/ekg/assets/* /usr/share/ekg-*/assets/
 
 cd ..
 fakeroot fpm -s dir -t deb -n "pastewatch" -v $VERSION --license="GPLv3" --vendor="clune.org" -m "arthur@clune.org" \
