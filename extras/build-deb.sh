@@ -13,7 +13,7 @@ rm pastewatch*deb
 
 if [ ! -d pastewatch ];
 then
-   git checkout https://github.com/ArthurClune/pastewatch.git
+   git clone https://github.com/ArthurClune/pastewatch.git
 fi
 
 cd pastewatch
