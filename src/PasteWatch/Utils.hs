@@ -38,9 +38,7 @@ sendEmail (Email sender)
             ]
             content
     addrs <- getAddrInfo Nothing (Just smtpServer') Nothing
-    let SockAddrInet _ hostAddr = addrAddress (head addrs)
-        sockAddr = SockAddrInet 25 hostAddr
-    sendSMTP Nothing myDomain' sockAddr [message]
+    sendSMTP Nothing myDomain' addrs [message]
     return ()
   where
     myDomain'    = stripQuotes myDomain
