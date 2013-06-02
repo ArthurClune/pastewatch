@@ -7,8 +7,6 @@ module PasteWatch.Core
         pastewatch
     ) where
 
-import           Prelude hiding (catch)
-
 import           Control.Concurrent         (forkIO, threadDelay, ThreadId)
 import           Control.Concurrent.STM
 import           Control.DeepSeq            ( ($!!) )

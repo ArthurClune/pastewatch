@@ -12,8 +12,6 @@ module PasteWatch.Sites
         siteConfigs
     ) where
 
-import          Prelude hiding (catch)
-
 import           Control.DeepSeq            ( ($!!) )
 import           Control.Error
 import           Control.Exception          (AsyncException(StackOverflow), handle)
