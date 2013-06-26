@@ -37,7 +37,7 @@ do_start()
 
 do_stop()
 {
-    if [ ! -f /var/run/pastewatch.pid ];
+    if [ ! -f $PIDFILE ];
         then
             return 1
         fi
