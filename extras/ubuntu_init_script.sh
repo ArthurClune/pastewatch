@@ -41,7 +41,7 @@ do_stop()
         then
             return 1
         fi
-    kill -9 `cat /var/run/pastewatch.pid`
+    kill -9 `cat $PIDFILE`
     rm -f $PIDFILE
     return 0
 }
