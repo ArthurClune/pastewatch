@@ -5,3 +5,6 @@ dist_*
 cabal-dev
 db.config
 pastewatch.log
+.cabal-sandbox
+cabal.sandbox.config
+
