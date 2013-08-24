@@ -52,5 +52,7 @@ stripQuotes ('"':s)  | last s == '"'  = init s
                      | otherwise      = s
 stripQuotes ('\'':s) | last s == '\'' = init s
                      | otherwise      = s
+stripQuotes x = x
+
 
 
