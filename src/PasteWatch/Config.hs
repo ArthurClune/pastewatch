@@ -21,7 +21,7 @@ parseArgs = do
     args <- getArgs
     if length args == 1
         then return (head args)
-        else abort "Usage: urllogs.hs <config file>"
+        else abort "Usage: pastewatch <config file>"
 
 -- | Parse config file
 parseConfig::FilePath -> IO UserConfig
