@@ -63,7 +63,7 @@ Extras
 
 A Debian/Ubuntu init script and a script to make a Debian/Ubuntu package are included in extras/
 
-A .deb for Ubuntu 12.04 is available from http://clune.org/pastewatch.deb To use:
+A .deb for Ubuntu 12.04 is available from http://files.clune.org/pastewatch.deb To use:
 ```
 # dpkg -i pastewatch.deb
 ```
