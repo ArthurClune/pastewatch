@@ -146,7 +146,7 @@ instance DCT.Configured [Email] where
 --
 -- doCheck and getnewPastes in PasteWatch.Sites must
 -- be implemented for every new site
-data Site = Pastebin | Pastie | SkidPaste | Slexy | Snipt
+data Site = Pastebin | Pastie | SkidPaste | Slexy
                 deriving (Bounded, Enum, Eq, Generic, Show, Typeable)
 
 instance DB.Val Site where
@@ -156,7 +156,6 @@ instance DB.Val Site where
       "Pastie"    -> Just Pastie
       "SkidPaste" -> Just SkidPaste
       "Slexy"     -> Just Slexy
-      "Snipt"     -> Just Snipt
       _           -> Nothing
     cast' _ = Nothing
 

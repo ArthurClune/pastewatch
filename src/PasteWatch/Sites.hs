@@ -9,6 +9,7 @@ module PasteWatch.Sites
         createGauges,
         doCheck,
         getNewPastes,
+        getNewPastes',
         siteConfigs
     ) where
 
@@ -43,8 +44,7 @@ siteConfigs = Map.fromList [
   (Pastebin,  SiteConfig  19 3603  600),
   (Pastie,    SiteConfig  41  203 1200),
   (SkidPaste, SiteConfig 247  203 7200),
-  (Slexy,     SiteConfig 251  203 7200),
-  (Snipt,     SiteConfig 254  203 7200)
+  (Slexy,     SiteConfig 251  203 7200)
   ]
 
 -- | Check contents of a URL against given check function
@@ -62,7 +62,6 @@ doCheck Pastie    url = doCheck' url (Just $ css "pre") Nothing
 doCheck SkidPaste url = doCheck' url Nothing Nothing
 doCheck Slexy (URL u) = doCheck' (URL u) Nothing
                                  (Just $ URL ("http://slexy.org/view/" ++ drop 21 u))
-doCheck Snipt     url = doCheck' url (Just $ css "textarea") Nothing
 
 -- | Get all the new pastes from a given site
 -- Must be implemented for every new site
@@ -83,8 +82,8 @@ getNewPastes Pastie =
                   (++ "/text")
 
 getNewPastes SkidPaste =
-    getNewPastes' "http://skidpaste.org"
-                  (css "ul[class=ipsList_withminiphoto] a" ! "href")
+    getNewPastes' "http://skidpaste.org/pastes"
+                  (css "table a" ! "href")
                   (\u -> "http://skidpaste.org/" ++ u ++ ".txt")
 
 getNewPastes Slexy =
@@ -92,10 +91,6 @@ getNewPastes Slexy =
                   (css "div[class=main] tr a" ! "href")
                   (\u -> "http://slexy.org/raw/" ++ drop 6 u)
 
-getNewPastes Snipt =
-    getNewPastes' "http://snipt.org/code/recent"
-                  (css "div[class=grid-block-container] a" ! "href")
-                  (++ "/plaintext")
 
 -----------------------------------------------------------
 -- Nothing below here needs changing when adding a new site

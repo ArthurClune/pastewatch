@@ -44,8 +44,6 @@ getPasteTests = [("get pastebin", "@example.com", "testing @example.com testing"
                    Pastie, URL "http://pastie.org/pastes/5406980/text"),
                 ("get slexy", "@example.com", "testing @example.com testing",
                    Slexy, URL "http://slexy.org/raw/s2Fv9q8J2H"),
-                ("get snipt", "@example.com", "testing @example.com testing\n",
-                   Snipt, URL "http://snipt.org/zkfe8/plaintext"),
                 ("get skidpaste", "@example.com",
                    "testing @example.com testing",
                    SkidPaste, URL "http://skidpaste.org/3cOMCRpA.txt")
