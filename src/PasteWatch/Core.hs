@@ -134,7 +134,7 @@ pruneURLs = do
       in
         modify $ \s -> s { linksSeen =
             Map.filter filterf linksSeen }
-    liftIO $ SRG.set seenHashLen (Map.size linksSeen)
+    liftIO $ SRG.set seenHashLen (fromIntegral $ Map.size linksSeen)
     modify $ \s -> s { seenHashLen = seenHashLen }
 
 -- | If we have not seen a link before, return True and record that we have

@@ -252,7 +252,7 @@ execWorker s = runReaderT . (execStateT . runWorker) s
 data ControlState = ControlState {
     -- | STM queue for passing URLs around
     linkQueue   :: TChan Task,
-    -- | P1er thread map of URLs seen for this site
+    -- | Per thread map of URLs seen for this site
     linksSeen   :: Map.HashMap URL Time.UTCTime,
     -- | Number of urls we're tested in total
     seenHashLen :: Gauge,
