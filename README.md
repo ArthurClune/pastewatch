@@ -63,7 +63,9 @@ Extras
 
 A Debian/Ubuntu init script and a script to make a Debian/Ubuntu package are included in extras/
 
-A .deb for Ubuntu 12.04 is available from http://files.clune.org/pastewatch.deb (SHA256 48a6d3b26bb05eab908c761e09ad4be54a388076fb9cc20adcf71b922f22108a)
+A .deb for Ubuntu 12.04 is available from http://files.clune.org/pastewatch_12_04.deb (SHA256 48a6d3b26bb05eab908c761e09ad4be54a388076fb9cc20adcf71b922f22108a)
+
+A .deb for Ubuntu 14.04 is available from http://files.clune.org/pastewatch_14_04.deb (SHA256 2a197a9b1f4180c413bcdd7a90b7611313caa0449a5696d3a85a13f674598c42)
 
 To use:
 ```
