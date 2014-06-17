@@ -4,7 +4,7 @@ echo -n "This script drops files all over your machine. You may wish to "
 echo "run this script in a disposable VM. Delete these lines to run"
 echo
 echo "This script requires fpm to run"
-echo "$ sudo apt-get install rubygems"
+echo "$ sudo apt-get install ruby ruby-mkrf ruby-dev"
 echo "$ sudo gem install fpm"
 exit 1
 
