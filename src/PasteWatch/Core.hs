@@ -91,7 +91,6 @@ storeInDB (Just pipe) site url match content =
         do
             WorkerState{..} <- get
             ts   <- liftIO Time.getCurrentTime
-            let run = DB.access pipe DB.master db
             let paste = ["schemaVer" =: (1::Int),
                          "ts"        =: ts,
                          "url"       =: url,
@@ -102,10 +101,10 @@ storeInDB (Just pipe) site url match content =
                         ]
             liftIO $ do
                 debugM "pastewatch.storeInDB" $ show url
-                res <- run $ DB.insert "pastes" paste
+                res <- runEitherT $ DB.access pipe DB.master db (DB.insert_ "pastes" paste)
                 case res of
-                    Left  e -> do
-                                errorM "pastewatch.storeInDB" $ "Error storing in DB " ++ show e
+                    Left  _ -> do
+                                errorM "pastewatch.storeInDB" $ "Error storing in DB "
                                 atomically $ putTMVar criticalError True
                     Right _ -> return ()
 
@@ -300,7 +299,7 @@ pastewatch = do
   where
 
     dbConnect host = do
-        r <- runEitherT $ scriptIO $ DB.runIOE $ DB.connect host
+        r <- runEitherT $ scriptIO $ DB.connect host
         case r of
             Left  e -> do
                 errorM "pastewatch.pastewatch" $ "Database connection error: " ++ show e

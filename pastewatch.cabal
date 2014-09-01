@@ -17,7 +17,7 @@ executable pastewatch
   default-language:    Haskell2010
   ghc-options:         -Wall -threaded -rtsopts -O2 -funbox-strict-fields
   main-is:             pastewatch.hs
-  build-depends:       base ==4.6.*, pastewatch
+  build-depends:       base, pastewatch
 
 Library
     Exposed-Modules:  PasteWatch.Config, PasteWatch.Core,
@@ -27,7 +27,7 @@ Library
     default-language: Haskell98
     Build-depends:    base, bson, bytestring, configurator, deepseq,
                       deepseq-generics,
-                      ekg, errors, ghc-prim, hashable, hashable-generics, hslogger,
+                      ekg, errors, ghc-prim, hashable, hslogger,
                       HTTP, HandsomeSoup, hxt, hxt-tagsoup, mongoDB, mtl, network,
                       old-locale, old-time, parallel-io, random, text-icu,
                       safe, stm, SMTPClient,

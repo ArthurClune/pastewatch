@@ -8,10 +8,10 @@ module PasteWatch.Config
 
 import Control.Applicative      ( (<$>), (<*>) )
 import Control.Error
-import Data.Configurator
+import Data.Configurator        (Worth( Required), load, require)
 import Safe                     (abort)
 import System.Environment       (getArgs)
-import System.Exit
+import System.Exit              (ExitCode(ExitFailure), exitWith)
 
 import PasteWatch.Types
 

@@ -1,4 +1,11 @@
-{-# LANGUAGE DeriveGeneric, DeriveDataTypeable, FlexibleInstances, GeneralizedNewtypeDeriving, OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+-- OverlappingInstances is needed for "recipients" in UserConfig otherwise we get an error
+-- from Configurator
+{-# LANGUAGE OverlappingInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- | Core types
@@ -29,6 +36,7 @@ module PasteWatch.Types
         runWorker,
     ) where
 
+import           Control.Applicative            (Applicative)
 import           Control.Concurrent.STM         (TChan)
 import           Control.Concurrent.STM.TMVar   (TMVar)
 import           Control.DeepSeq
@@ -36,8 +44,7 @@ import           Control.DeepSeq.Generics       (genericRnf)
 import           Control.Monad.Reader
 import           Control.Monad.State
 import qualified Data.Configurator.Types as DCT
-import           Data.Hashable
-import           Data.Hashable.Generic          (gHashWithSalt)
+import           Data.Hashable                  (Hashable(..), hashUsing)
 import qualified Data.HashMap.Strict as Map
 import qualified Data.Text as T
 import qualified Data.Time.Clock as Time
@@ -159,11 +166,8 @@ instance DB.Val Site where
       _           -> Nothing
     cast' _ = Nothing
 
--- No ETA reduce on this instance. See
--- http://hackage.haskell.org/packages/archive/hashable-generics/1.1.8/doc/html/Data-Hashable-Generic.html
 instance Hashable Site where
-    hashWithSalt s x  = gHashWithSalt s x
-    {-# INLINEABLE hashWithSalt #-}
+    hashWithSalt = hashUsing fromEnum
 
 instance NFData Site where rnf = genericRnf
 
@@ -229,7 +233,7 @@ data UserConfig = UserConfig {
 -- This the monad that the control threads run in
 newtype Control a  = Control {
       runControl :: StateT ControlState (ReaderT SiteConfig IO) a
-    } deriving (Monad, MonadReader SiteConfig, MonadState ControlState, MonadIO)
+    } deriving (Applicative, Functor, Monad, MonadReader SiteConfig, MonadState ControlState, MonadIO)
 
 execControl::Control a -> ControlState -> SiteConfig -> IO ControlState
 execControl s = runReaderT . (execStateT . runControl) s
@@ -238,7 +242,7 @@ execControl s = runReaderT . (execStateT . runControl) s
 -- This the monad that the worker threads run in
 newtype Worker a = Worker {
     runWorker :: StateT WorkerState (ReaderT UserConfig IO) a
-  } deriving (Monad, MonadReader UserConfig, MonadState WorkerState, MonadIO)
+  } deriving (Applicative, Functor, Monad, MonadReader UserConfig, MonadState WorkerState, MonadIO)
 
 execWorker::Worker a -> WorkerState -> UserConfig -> IO WorkerState
 execWorker s = runReaderT . (execStateT . runWorker) s
