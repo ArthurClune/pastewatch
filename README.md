@@ -88,7 +88,7 @@ to run.
 Sites Covered
 -------------
 
-Currently pastebin.com, pastie.org, skidpaste.org, slexy.org and snipt.org
+Currently pastebin.com, pastie.org, skidpaste.org, slexy.org
 
 Adding a new site
 -----------------
