@@ -37,7 +37,6 @@ parseConfig file = do
                      <*> require c' "alertToEmail"
                      <*> require c' "dbHost"
                      <*> require c' "dbName"
-                     <*> require c' "domain"
                      <*> require c' "logAllToDB"
                      <*> require c' "logLevel"
                      <*> require c' "logTo"

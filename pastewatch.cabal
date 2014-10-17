@@ -1,6 +1,6 @@
 name:                pastewatch
 category:            web
-version:             1.1.3
+version:             1.1.4
 license:             GPL-3
 license-file:        license.txt
 description:         Code to watch paste sites and alert on pastes of interest
@@ -30,7 +30,7 @@ Library
                       ekg, errors, ghc-prim, hashable, hslogger,
                       HTTP, HandsomeSoup, hxt, hxt-tagsoup, mongoDB, mtl, network,
                       old-locale, old-time, parallel-io, random, text-icu,
-                      safe, stm, SMTPClient,
+                      safe, stm, smtp-mail,
                       stm, text, time, transformers, unordered-containers
     ghc-options:      -Wall -O2 -funbox-strict-fields
 

@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 -- | Some misc utility functions
 module PasteWatch.Utils
     (
@@ -5,47 +7,28 @@ module PasteWatch.Utils
       stripQuotes
     ) where
 
-import           Network.SMTP.Client
+import qualified Data.Text.Lazy as T
 import           Network.Socket
-import           System.Time         (getClockTime, toCalendarTime)
+import           Network.Mail.SMTP
 
-import PasteWatch.Types hiding (recipients, sender, smtpServer)
+import Data.Monoid ( (<>) )
+
+import PasteWatch.Types (MatchText (..) )
 
 -- | Send an email with given subject and contents
 -- using the given (unauthenicated) smtp server
 -- myDomain is the domain of the sender
 -- This function taken from the example code in Network.SMTP.Client
-sendEmail::Email
-           -> [Email]
-           -> Domain
-           -> Host
-           -> String
-           -> String
-           -> IO()
-sendEmail (Email sender)
-          recipients
-          (Domain myDomain)
-          (Host smtpServer)
-          subject
-          content = do
-    now <- getClockTime
-    nowCT <- toCalendarTime now
-    let message = Message [
-                From sender',
-                To   recipients',
-                Subject subject,
-                Date nowCT
-            ]
-            content
-    addrs <- getAddrInfo Nothing (Just smtpServer') Nothing
-    sendSMTP Nothing myDomain' addrs [message]
-    return ()
+sendEmail::Address -> [Address] -> HostName -> MatchText -> String -> IO()
+sendEmail sender recipients smtpServer (MatchText match) content =  sendMail smtpServer mail
   where
-    myDomain'    = stripQuotes myDomain
-    recipients'  = map (toName . ( \(Email x) -> ("", stripQuotes x))) recipients
-    sender'      = [toName ("", stripQuotes sender)]
-    smtpServer'  = stripQuotes smtpServer
-    toName (n,e) = NameAddr (Just n) e
+    to         = recipients
+    cc         = []
+    bcc        = []
+    body       = plainTextPart $ T.pack content
+    subject   = "Pastebin alert. Match on " <> match
+    mail       = simpleMail sender to cc bcc subject [body]
+
 
 stripQuotes::String -> String
 stripQuotes ('"':s)  | last s == '"'  = init s

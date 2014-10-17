@@ -61,9 +61,7 @@ emailFile True sendResult url match (PasteContents content) = do
     UserConfig{..} <- ask
     liftIO $ do
         debugM "pastewatch.emailFile" $ "Sending email for " ++ show url
-        res <- runEitherT $ tryIO $ sendEmail sender recipients domain smtpServer
-                                       ("Pastebin alert. Match on " ++ show match)
-                                       (show url ++ "\r\n\r\n" ++ mailbody)
+        res <- runEitherT $ tryIO $ sendEmail sender recipients smtpServer match (show url ++ "\r\n\r\n" ++ mailbody)
         case res of
             Left  e -> do
                         errorM "pastewatch.emailFile" $ "Error sending email " ++ show e

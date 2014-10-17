@@ -14,9 +14,6 @@ module PasteWatch.Types
         Control,
         ControlState(..),
         Counters,
-        Domain(..),
-        Email(..),
-        Host(..),
         LogDestination(..),
         MatchText(..),
         PasteContents(..),
@@ -52,6 +49,8 @@ import           Data.Typeable
 import qualified Database.MongoDB as DB
 import           GHC.Exts                       ( IsString(..) )
 import           GHC.Generics
+import           Network.Mail.SMTP
+import           Network.Socket                 (HostName)
 import           System.Log as Log
 import           System.Remote.Counter          (Counter)
 import           System.Remote.Gauge            (Gauge)
@@ -61,32 +60,13 @@ import           System.Random
 -- simple types
 --------------------------------------------------------------
 
--- | A domain (e.g. "example.com")
-newtype Domain = Domain String deriving (Eq, Generic, IsString, Show)
+instance DCT.Configured Address where
+  convert (DCT.String v) = Just (Address Nothing v)
+  convert _              = Nothing
 
-instance DCT.Configured Domain where
-    convert (DCT.String v) = Just $ Domain (T.unpack v)
-    convert _              = Nothing
-
-instance NFData Domain where rnf = genericRnf
-
--- | Email address (e.g. "fred@example.com")
-newtype Email = Email String deriving (Eq, Generic, IsString, Show)
-
-instance DCT.Configured Email where
-    convert (DCT.String v) = Just $ Email (T.unpack v)
-    convert _              = Nothing
-
-instance NFData Email where rnf = genericRnf
-
--- | A hostname (e.g. smtp.example.com)
-newtype Host = Host String deriving (Eq, Generic, IsString, Show)
-
-instance DCT.Configured Host where
-    convert (DCT.String v) = Just $ Host (T.unpack v)
-    convert _              = Nothing
-
-instance NFData Host where rnf = genericRnf
+instance DCT.Configured [Address] where
+    convert (DCT.List xs) = mapM DCT.convert xs
+    convert _             = Nothing
 
 -- | Type to define where we log to
 data LogDestination = LOGSTDERR | LOGSYSLOG | LOGBOTH deriving (Bounded, Enum, Eq)
@@ -141,9 +121,6 @@ instance DCT.Configured Log.Priority where
     convert (DCT.String "error") = Just Log.ERROR
     convert _                    = Nothing
 
-instance DCT.Configured [Email] where
-    convert (DCT.List xs) = mapM DCT.convert xs
-    convert _             = Nothing
 
 --------------------------------------------------------------
 -- Config data structures
@@ -200,8 +177,6 @@ data UserConfig = UserConfig {
     dbHost         :: !DB.Host,
     -- | dbName
     dbName         :: !DB.Database,
-    -- | Domain that email comes from
-    domain         :: !Domain,
     -- | Log all pastes in DB?
     logAllToDB     :: !Bool,
     -- | Log level for hslogger
@@ -218,11 +193,11 @@ data UserConfig = UserConfig {
     -- a time period
     pauseMax       :: !Int,
     -- | Send alert emails to?
-    recipients     :: ![Email],
+    recipients     :: ![Address],
     -- | Send alert emails as?
-    sender         :: !Email,
+    sender         :: !Address,
     -- | SMTP server to use to send email via
-    smtpServer     :: !Host
+    smtpServer     :: !HostName
 }
 
 --------------------------------------------------------------
