@@ -29,6 +29,7 @@ Library
                       deepseq-generics,
                       ekg, errors, ghc-prim, hashable, hslogger,
                       HTTP, HandsomeSoup, hxt, hxt-tagsoup, mongoDB, mtl, network,
+                      network-uri,
                       old-locale, old-time, parallel-io, random, text-icu,
                       safe, stm, smtp-mail,
                       stm, text, time, transformers, unordered-containers
