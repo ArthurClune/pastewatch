@@ -1,4 +1,4 @@
-{-# LANGUAGE OverlappingInstances, OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module PasteWatch.Config
     (
@@ -6,7 +6,6 @@ module PasteWatch.Config
       parseConfig
     ) where
 
-import Control.Applicative      ( (<$>), (<*>) )
 import Control.Error
 import Data.Configurator        (Worth( Required), load, require)
 import Safe                     (abort)

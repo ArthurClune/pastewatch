@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, RecordWildCards, ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts, OverloadedStrings, RecordWildCards, ScopedTypeVariables #-}
 
 -- | Check paste sites (as defined in PasteWatch.Sites) for content matching
 -- given strings
@@ -18,14 +18,13 @@ import           Data.List                  (unfoldr)
 import           Data.Maybe                 (fromJust)
 import qualified Data.Text as T
 import qualified Data.Time.Clock as Time
-import           Data.Time.Format           (formatTime)
+import           Data.Time.Format           (defaultTimeLocale, formatTime)
 import           Data.Time.LocalTime        (getZonedTime)
 import qualified Database.MongoDB as DB
 import           Database.MongoDB           ( (=:) )
 import           GHC.Conc                   (numCapabilities)
 import           System.Exit                (exitWith, ExitCode(..))
 import           System.IO                  (stderr)
-import           System.Locale              (defaultTimeLocale)
 import           System.Log.Logger
 import           System.Log.Handler.Simple
 import           System.Log.Handler.Syslog  (openlog, Facility(..), Option(..))
@@ -332,4 +331,5 @@ pastewatch = do
         setupSyslog handlerf = do
             s <- openlog "pastewatch" [PID] DAEMON DEBUG
             updateGlobalLogger rootLoggerName (setLevel level . handlerf s)
+
 

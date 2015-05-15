@@ -2,9 +2,6 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
--- OverlappingInstances is needed for "recipients" in UserConfig otherwise we get an error
--- from Configurator
-{-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -33,7 +30,6 @@ module PasteWatch.Types
         runWorker,
     ) where
 
-import           Control.Applicative            (Applicative)
 import           Control.Concurrent.STM         (TChan)
 import           Control.Concurrent.STM.TMVar   (TMVar)
 import           Control.DeepSeq
@@ -60,11 +56,11 @@ import           System.Random
 -- simple types
 --------------------------------------------------------------
 
-instance DCT.Configured Address where
+instance {-# OVERLAPPING #-} DCT.Configured Address where
   convert (DCT.String v) = Just (Address Nothing v)
   convert _              = Nothing
 
-instance DCT.Configured [Address] where
+instance {-# OVERLAPPING #-} DCT.Configured [Address] where
     convert (DCT.List xs) = mapM DCT.convert xs
     convert _             = Nothing
 
