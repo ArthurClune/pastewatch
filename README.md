@@ -8,6 +8,7 @@ To use install the Haskell Platform (http://www.haskell.org/platform/, version 2
 
 Edit src/PasteWatch/Config.hs to taste.
 ```
+$ cabal sandbox init
 $ cabal configure --enable-tests
 $ cabal install
 ```
@@ -23,7 +24,7 @@ where the number -N4 = number of cores you want the program to use.
 
 Monitoring is available on http://localhost:8000
 
-This is currently not authenticated - set firewall rules suitably!
+This is not authenticated, but only listens on localhost.
 
 
 Compilation on OS X
